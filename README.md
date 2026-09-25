@@ -2,6 +2,15 @@
 
 Planeje viagens **em grupo** — do "um dia a gente vai" à viagem reservada.
 
+### 🔗 [Ver funcionando → cotrip-chi.vercel.app](https://cotrip-chi.vercel.app)
+
+Quer entrar sem criar conta? Use a conta de demonstração:
+
+| | |
+|---|---|
+| **Email** | `demo@cotrip.app` |
+| **Senha** | `demo1234` |
+
 CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos anos. Cada viagem passa por um fluxo simples de status (**Ideia → Planejando → Reservado → Feita**), com época, orçamento estimado e anotações. Duas ou mais pessoas entram no mesmo quadro e editam juntas.
 
 > Projeto full-stack em **Next.js + TypeScript + PostgreSQL**. Nasceu de um protótipo e virou uma aplicação com contas de verdade e espaços compartilhados (multi-tenant).
