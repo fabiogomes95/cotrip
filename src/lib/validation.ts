@@ -114,6 +114,13 @@ export const checklistItemCreateSchema = z.object({
   /* Pagamento. Estes três NÃO têm default de propósito: num PATCH parcial,
      um default sobrescreveria o parcelamento já gravado toda vez que alguém
      apenas marcasse o item como contratado. */
+  downPaymentCents: z
+    .union([
+      z.null(),
+      z.coerce.number().int().min(0, "A entrada não pode ser negativa").max(100_000_000_00),
+    ])
+    .optional(),
+  downPaymentPaid: z.boolean().optional(),
   installments: z.coerce
     .number()
     .int()

@@ -13,6 +13,8 @@ import { pagoCents } from "@/lib/parcelas";
 
 export type ItemAcerto = {
   amountCents: number | null;
+  downPaymentCents: number | null;
+  downPaymentPaid: boolean;
   installments: number;
   paidInstallments: number;
   paidById: string | null;

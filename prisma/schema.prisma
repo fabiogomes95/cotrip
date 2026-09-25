@@ -108,8 +108,17 @@ model ChecklistItem {
    * falta e o proximo vencimento. Uma tabela so se pagaria se cada parcela
    * tivesse valor ou data propria.
    */
-  installments     Int       @default(1) // em quantas vezes
-  paidInstallments Int       @default(0) // quantas ja foram pagas
+  /**
+   * /* Entrada: o pedaco pago na hora da compra. O que sobra (amountCents menos
+   * a entrada) e que se divide em `installments`. Fica separado do valor das
+   * parcelas porque entrada quase nunca e igual a uma parcela — e porque so
+   * assim da para dizer "dei 500 e parcelei o resto em 6".
+   */
+  downPaymentCents Int? // valor da entrada, em centavos; null = sem entrada
+  downPaymentPaid  Boolean @default(false)
+
+  installments     Int       @default(1) // em quantas vezes vai o RESTANTE
+  paidInstallments Int       @default(0) // quantas dessas ja foram pagas
   firstDueDate     DateTime? @db.Date // vencimento da primeira parcela
 
   /**

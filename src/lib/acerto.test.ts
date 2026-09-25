@@ -8,7 +8,15 @@ const BRUNO: Pessoa = { userId: "bruno", name: "Bruno" };
 const CIDA: Pessoa = { userId: "cida", name: "Cida" };
 
 function item(p: Partial<ItemAcerto> = {}): ItemAcerto {
-  return { amountCents: null, installments: 1, paidInstallments: 0, paidById: null, ...p };
+  return {
+    amountCents: null,
+    downPaymentCents: null,
+    downPaymentPaid: false,
+    installments: 1,
+    paidInstallments: 0,
+    paidById: null,
+    ...p,
+  };
 }
 
 /** Um item à vista, já pago por alguém. */

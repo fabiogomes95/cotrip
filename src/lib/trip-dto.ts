@@ -21,6 +21,8 @@ export function toItemDTO(i: ChecklistItem): ChecklistItemDTO {
     label: i.label,
     done: i.done,
     amountCents: i.amountCents,
+    downPaymentCents: i.downPaymentCents,
+    downPaymentPaid: i.downPaymentPaid,
     installments: i.installments,
     paidInstallments: i.paidInstallments,
     firstDueDate: i.firstDueDate ? paraISO(i.firstDueDate) : null,

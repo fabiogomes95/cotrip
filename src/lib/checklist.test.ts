@@ -16,6 +16,8 @@ function item(p: Partial<ChecklistItemDTO>): ChecklistItemDTO {
     label: "Item",
     done: false,
     amountCents: null,
+    downPaymentCents: null,
+    downPaymentPaid: false,
     installments: 1,
     paidInstallments: 0,
     firstDueDate: null,

@@ -28,6 +28,7 @@ import {
   pagoCents,
   parcelasRestantes,
   proximoVencimento,
+  valorEntrada,
   valorParcela,
 } from "@/lib/parcelas";
 import { calcularSaldos, sugerirPagamentos } from "@/lib/acerto";
@@ -1920,27 +1921,34 @@ function ChecklistLinha({
 
 /** A frase curta que resume o pagamento do item, no botão que abre o painel. */
 function resumoPagamento(item: ChecklistItemDTO): string {
-  const falta = faltaCents(item);
+  if (faltaCents(item) === 0) return "pago";
+
+  const entrada = valorEntrada(item);
   const restantes = parcelasRestantes(item);
-
-  if (falta === 0) return "pago";
-
   const partes: string[] = [];
-  if (item.installments > 1) {
-    partes.push(`${item.installments}× de ${formatBRL(valorParcela(item))}`);
-    if (item.paidInstallments > 0) {
-      partes.push(`${item.paidInstallments} paga${item.paidInstallments === 1 ? "" : "s"}`);
+
+  if (entrada > 0) {
+    partes.push(
+      `entrada ${formatBRL(entrada)}${item.downPaymentPaid ? "" : " (a pagar)"}`,
+    );
+  }
+
+  if (restantes > 0 || item.paidInstallments > 0) {
+    if (item.installments > 1) {
+      partes.push(`${item.installments}× de ${formatBRL(valorParcela(item))}`);
+      if (item.paidInstallments > 0) {
+        partes.push(
+          `${item.paidInstallments} paga${item.paidInstallments === 1 ? "" : "s"}`,
+        );
+      }
+    } else if (entrada === 0) {
+      partes.push("à vista");
     }
-  } else {
-    partes.push("à vista");
   }
 
   const venc = proximoVencimento(item);
-  if (venc) {
-    partes.push(`próxima ${formatarPeriodo(venc, null)}`);
-  } else if (restantes > 0 && item.installments === 1) {
-    partes.push("a pagar");
-  }
+  if (venc) partes.push(`próxima ${formatarPeriodo(venc, null)}`);
+  else if (partes.length === 0) partes.push("a pagar");
 
   return partes.join(" · ");
 }
@@ -1957,11 +1965,69 @@ function PainelPagamento({
 }) {
   const pagas = item.paidInstallments;
   const n = item.installments;
+  const entrada = valorEntrada(item);
+
+  // Rascunho local da entrada, como nos outros campos de dinheiro: só sobe
+  // para a API no blur, senão seria uma requisição por tecla.
+  const [rascunhoEntrada, setRascunhoEntrada] = useState(
+    centavosParaCampo(item.downPaymentCents),
+  );
+  const [vistoEnt, setVistoEnt] = useState(item.downPaymentCents);
+  if (vistoEnt !== item.downPaymentCents) {
+    setVistoEnt(item.downPaymentCents);
+    setRascunhoEntrada(centavosParaCampo(item.downPaymentCents));
+  }
+
+  function gravarEntrada() {
+    const v = parseCentavos(rascunhoEntrada);
+    if (v === item.downPaymentCents) return;
+    // Quem digita uma entrada normalmente já a pagou — é o gesto de registrar
+    // uma compra feita. Fica marcada, e dá para desmarcar ao lado.
+    onCommit({
+      downPaymentCents: v,
+      ...(v && v > 0 && !item.downPaymentPaid ? { downPaymentPaid: true } : {}),
+      ...(v === null ? { downPaymentPaid: false } : {}),
+    });
+  }
 
   return (
     <div className="check-pag">
       <div className="linha">
-        <label htmlFor={`p-n-${item.id}`}>Em quantas vezes</label>
+        <label htmlFor={`p-e-${item.id}`}>Entrada</label>
+        <div className="entrada">
+          <input
+            id={`p-e-${item.id}`}
+            type="text"
+            inputMode="decimal"
+            value={rascunhoEntrada}
+            onChange={(e) => setRascunhoEntrada(e.target.value)}
+            onBlur={gravarEntrada}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+            placeholder="sem entrada"
+            autoComplete="off"
+          />
+          {entrada > 0 && (
+            <label className="ja-paga">
+              <input
+                type="checkbox"
+                checked={item.downPaymentPaid}
+                onChange={(e) => onCommit({ downPaymentPaid: e.target.checked })}
+              />
+              já paga
+            </label>
+          )}
+        </div>
+      </div>
+
+      <div className="linha">
+        <label htmlFor={`p-n-${item.id}`}>
+          {entrada > 0 ? "Restante em quantas vezes" : "Em quantas vezes"}
+        </label>
         <input
           id={`p-n-${item.id}`}
           type="number"
@@ -2031,6 +2097,12 @@ function PainelPagamento({
       )}
 
       <p className="resumo">
+        {entrada > 0 && (
+          <span className="conta">
+            {formatBRL(entrada)} de entrada + {n}× de {formatBRL(valorParcela(item))}
+            <br />
+          </span>
+        )}
         <b>{formatBRL(pagoCents(item))}</b> pagos ·{" "}
         {faltaCents(item) > 0 ? (
           <>faltam {formatBRL(faltaCents(item))}</>

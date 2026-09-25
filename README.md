@@ -26,7 +26,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
 - **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
-- **Parcelamento e pagamento**: um item do checklist distingue *contratado* de *pago*. Passagem em 10x com 3 pagas mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
+- **Parcelamento com entrada**: um item do checklist distingue *contratado* de *pago*. "R$ 500 de entrada + 6x de R$ 280, 2 pagas" mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
 - **Sair do quadro**: quem foi convidado vai embora sozinho, sem depender do dono. (O dono não sai — precisa excluir o quadro antes.)
 - **Acerto de contas** (quadro compartilhado): registre quem bancou cada item e o app calcula quem deve quanto a quem, sugerindo as transferências que zeram tudo.
 - **Quantas pessoas vão** por viagem: os valores continuam por pessoa, e o app calcula o total do grupo. Viagem criada num quadro solo já nasce com 1 pessoa.
@@ -60,9 +60,10 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 
 > **`done` significa CONTRATADO, não pago.** São coisas diferentes: passagem
 > em 6x está contratada no primeiro dia e paga só no sexto mês. O parcelamento
-> é modelado com três escalares no item (`installments`, `paidInstallments`,
-> `firstDueDate`) em vez de uma tabela de parcelas — tudo que o app precisa é
-> derivável deles.
+> é modelado com escalares no item (`downPaymentCents`, `downPaymentPaid`,
+> `installments`, `paidInstallments`, `firstDueDate`) em vez de uma tabela de
+> parcelas — tudo que o app precisa é derivável deles. A entrada fica separada
+> do valor das parcelas porque quase nunca é igual a uma delas.
 
 > **Dinheiro é sempre guardado em centavos**, como inteiro (`budgetCents`,
 > `amountCents`). O nome do campo carrega a unidade de propósito: ponto
@@ -207,7 +208,7 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ```bash
 npm run typecheck   # tipos
 npm run lint        # ESLint
-npm test            # 106 testes
+npm test            # 116 testes
 ```
 
 Os testes cobrem o que quebraria em silêncio:

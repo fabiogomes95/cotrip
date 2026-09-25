@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   faltaCents,
+  valorEntrada,
   pagoCents,
   parcelasRestantes,
   proximoVencimento,
@@ -13,6 +14,8 @@ import type { ItemComVencimento } from "./parcelas";
 function item(p: Partial<ItemComVencimento> = {}): ItemComVencimento {
   return {
     amountCents: null,
+    downPaymentCents: null,
+    downPaymentPaid: false,
     installments: 1,
     paidInstallments: 0,
     firstDueDate: null,
@@ -106,7 +109,103 @@ describe("proximoVencimento", () => {
 
 describe("parcelasRestantes", () => {
   it("conta o que ainda vai vencer", () => {
-    assert.equal(parcelasRestantes(item({ installments: 6, paidInstallments: 2 })), 4);
-    assert.equal(parcelasRestantes(item({ installments: 6, paidInstallments: 6 })), 0);
+    assert.equal(
+      parcelasRestantes(item({ amountCents: 60000, installments: 6, paidInstallments: 2 })),
+      4,
+    );
+    assert.equal(
+      parcelasRestantes(item({ amountCents: 60000, installments: 6, paidInstallments: 6 })),
+      0,
+    );
+  });
+
+  it("item sem valor não tem parcela pendente", () => {
+    assert.equal(parcelasRestantes(item({ installments: 6, paidInstallments: 2 })), 0);
+  });
+
+  it("pago inteiro na entrada não sobra parcela", () => {
+    const i = item({ amountCents: 50000, downPaymentCents: 50000, installments: 6 });
+    assert.equal(parcelasRestantes(i), 0);
+    assert.equal(valorParcela(i), 0);
+  });
+});
+
+describe("entrada", () => {
+  it("só o restante é parcelado", () => {
+    // R$ 2.180 com R$ 500 de entrada: sobram R$ 1.680 em 6x de R$ 280
+    const i = item({ amountCents: 218000, downPaymentCents: 50000, installments: 6 });
+    assert.equal(valorEntrada(i), 50000);
+    assert.equal(valorParcela(i), 28000);
+  });
+
+  it("entrada não paga não conta como dinheiro que saiu", () => {
+    const i = item({
+      amountCents: 218000, downPaymentCents: 50000, downPaymentPaid: false, installments: 6,
+    });
+    assert.equal(pagoCents(i), 0);
+    assert.equal(faltaCents(i), 218000);
+  });
+
+  it("entrada paga entra no total pago", () => {
+    const i = item({
+      amountCents: 218000, downPaymentCents: 50000, downPaymentPaid: true, installments: 6,
+    });
+    assert.equal(pagoCents(i), 50000);
+    assert.equal(faltaCents(i), 168000);
+  });
+
+  it("entrada paga mais parcelas pagas somam certo", () => {
+    const i = item({
+      amountCents: 218000, downPaymentCents: 50000, downPaymentPaid: true,
+      installments: 6, paidInstallments: 2,
+    });
+    // 500 de entrada + 2 × 280
+    assert.equal(pagoCents(i), 50000 + 56000);
+    assert.equal(faltaCents(i), 218000 - 106000);
+  });
+
+  it("tudo pago fecha exatamente o total, mesmo com divisão inexata", () => {
+    const i = item({
+      amountCents: 100033, downPaymentCents: 33, downPaymentPaid: true,
+      installments: 7, paidInstallments: 7,
+    });
+    assert.equal(pagoCents(i), 100033);
+    assert.equal(faltaCents(i), 0);
+    assert.equal(quitado(i), true);
+  });
+
+  it("parcelas todas pagas com entrada em aberto NÃO é quitado", () => {
+    // o caso traiçoeiro: contar só as parcelas diria "quitado" com a entrada
+    // ainda devendo
+    const i = item({
+      amountCents: 218000, downPaymentCents: 50000, downPaymentPaid: false,
+      installments: 6, paidInstallments: 6,
+    });
+    assert.equal(quitado(i), false);
+    assert.equal(faltaCents(i), 50000);
+  });
+
+  it("entrada maior que o total é limitada ao total", () => {
+    const i = item({
+      amountCents: 50000, downPaymentCents: 90000, downPaymentPaid: true, installments: 3,
+    });
+    assert.equal(valorEntrada(i), 50000);
+    assert.equal(pagoCents(i), 50000);
+    assert.equal(faltaCents(i), 0);
+  });
+
+  it("pago mais falta sempre fecha o total, com entrada no meio", () => {
+    for (const pagas of [0, 1, 2, 3, 4, 5]) {
+      for (const paga of [true, false]) {
+        const i = item({
+          amountCents: 99991, downPaymentCents: 1234, downPaymentPaid: paga,
+          installments: 5, paidInstallments: pagas,
+        });
+        assert.equal(
+          pagoCents(i) + faltaCents(i), 99991,
+          `falhou com ${pagas} parcelas e entrada ${paga ? "paga" : "em aberto"}`,
+        );
+      }
+    }
   });
 });

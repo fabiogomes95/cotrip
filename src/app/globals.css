@@ -1666,6 +1666,49 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+/* Campo da entrada + a marca de "já paga", que só aparece quando há entrada. */
+.check-pag .entrada {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.check-pag .entrada input[type="text"] {
+  width: 96px;
+}
+/* Precisa de `.linha label` na frente: o checklist inteiro vive dentro de um
+   .field, e `.field label` aplica caixa alta e negrito a todo rótulo ali
+   dentro — o que faz sentido nos rótulos de campo, mas não neste, que é uma
+   marca ao lado da caixinha. */
+.check-pag .linha label.ja-paga {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  /* Desfaz o visual de rótulo de campo herdado de `.field label`: aqui é uma
+     marca ao lado da caixinha, não o título de um campo. Precisa zerar as
+     três propriedades — sobrescrever só o tamanho deixava o texto em caixa
+     alta e negrito. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.check-pag .linha label.ja-paga input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.check-pag .resumo .conta {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+}
+
 .check-pag .resumo {
   margin: 0;
   padding-top: 7px;

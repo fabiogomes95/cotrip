@@ -9,7 +9,10 @@ export interface ChecklistItemDTO {
   done: boolean;
   /** Valor TOTAL do item, por pessoa, em CENTAVOS. null = ainda não se sabe. */
   amountCents: number | null;
-  /** `done` é CONTRATADO; pagamento é o que estes três campos descrevem. */
+  /** `done` é CONTRATADO; pagamento é o que estes campos descrevem. */
+  /** Entrada em CENTAVOS; o restante é que se parcela. null = sem entrada. */
+  downPaymentCents: number | null;
+  downPaymentPaid: boolean;
   installments: number;
   paidInstallments: number;
   /** Vencimento da primeira parcela, "AAAA-MM-DD". */

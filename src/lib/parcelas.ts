@@ -16,38 +16,62 @@ import { somarMeses } from "@/lib/datas";
    que foi pago a carregar um campo que não usa. */
 export type ItemPagavel = {
   amountCents: number | null;
+  /** Entrada: pedaço pago na compra. O restante é que se parcela. */
+  downPaymentCents: number | null;
+  downPaymentPaid: boolean;
   installments: number;
   paidInstallments: number;
 };
 
 export type ItemComVencimento = ItemPagavel & { firstDueDate: string | null };
 
-/** Normaliza entradas fora de faixa em vez de confiar no que vem do banco. */
-function saneadas(item: ItemPagavel): { total: number; n: number; pagas: number } {
-  const total = item.amountCents ?? 0;
+/**
+ * Normaliza os números antes de qualquer conta.
+ *
+ * A entrada é limitada ao total: um valor maior seria uma compra em que se
+ * paga mais na entrada do que a coisa custa, e o resto ficaria negativo.
+ */
+function saneadas(item: ItemPagavel): {
+  total: number;
+  entrada: number;
+  restante: number;
+  n: number;
+  pagas: number;
+} {
+  const total = Math.max(0, item.amountCents ?? 0);
+  const entrada = Math.min(total, Math.max(0, item.downPaymentCents ?? 0));
   const n = Math.max(1, Math.trunc(item.installments || 1));
   const pagas = Math.min(n, Math.max(0, Math.trunc(item.paidInstallments || 0)));
-  return { total, n, pagas };
+  return { total, entrada, restante: total - entrada, n, pagas };
 }
 
-/** Quanto vale cada parcela, arredondado ao centavo. */
+/** Valor da entrada já normalizado (nunca maior que o total). */
+export function valorEntrada(item: ItemPagavel): number {
+  return saneadas(item).entrada;
+}
+
+/** Quanto vale cada parcela do RESTANTE, arredondado ao centavo. */
 export function valorParcela(item: ItemPagavel): number {
-  const { total, n } = saneadas(item);
-  return total > 0 ? Math.round(total / n) : 0;
+  const { restante, n } = saneadas(item);
+  return restante > 0 ? Math.round(restante / n) : 0;
 }
 
 /**
- * Quanto já saiu do bolso.
+ * Quanto já saiu do bolso: a entrada (se paga) mais as parcelas quitadas.
  *
- * Quando todas as parcelas foram pagas devolve o total cheio, em vez de
+ * Quando todas as parcelas foram pagas soma o restante inteiro, em vez de
  * `parcela × n`: com arredondamento, 100 em 3x daria 33+33+33 = 99 e um
  * centavo ficaria pendurado para sempre.
  */
 export function pagoCents(item: ItemPagavel): number {
-  const { total, n, pagas } = saneadas(item);
-  if (total <= 0 || pagas <= 0) return 0;
-  if (pagas >= n) return total;
-  return Math.round((total * pagas) / n);
+  const { total, entrada, restante, n, pagas } = saneadas(item);
+  if (total <= 0) return 0;
+
+  const daEntrada = item.downPaymentPaid ? entrada : 0;
+  const dasParcelas =
+    pagas <= 0 ? 0 : pagas >= n ? restante : Math.round((restante * pagas) / n);
+
+  return daEntrada + dasParcelas;
 }
 
 /** Quanto ainda falta pagar deste item. */
@@ -57,8 +81,10 @@ export function faltaCents(item: ItemPagavel): number {
 }
 
 export function quitado(item: ItemPagavel): boolean {
-  const { total, n, pagas } = saneadas(item);
-  return total > 0 && pagas >= n;
+  const { total } = saneadas(item);
+  // Definido pelo dinheiro, não pela contagem: um item com entrada ainda em
+  // aberto não está quitado mesmo com todas as parcelas pagas.
+  return total > 0 && faltaCents(item) === 0;
 }
 
 /**
@@ -68,13 +94,14 @@ export function quitado(item: ItemPagavel): boolean {
  * e a maioria dos parcelamentos de viagem funcionam.
  */
 export function proximoVencimento(item: ItemComVencimento): string | null {
-  const { n, pagas } = saneadas(item);
-  if (!item.firstDueDate || pagas >= n) return null;
+  const { restante, n, pagas } = saneadas(item);
+  if (!item.firstDueDate || restante <= 0 || pagas >= n) return null;
   return somarMeses(item.firstDueDate, pagas);
 }
 
 /** Parcelas que ainda vão vencer. */
 export function parcelasRestantes(item: ItemPagavel): number {
-  const { n, pagas } = saneadas(item);
+  const { restante, n, pagas } = saneadas(item);
+  if (restante <= 0) return 0; // pago inteiro na entrada: não há parcelas
   return Math.max(0, n - pagas);
 }

@@ -24,11 +24,24 @@ type ViagemDemo = {
   dest: string;
   whenText: string;
   ano: number;
+  /** Datas exatas, quando a demo quer mostrar a contagem regressiva. */
+  ida?: [number, number, number];
+  volta?: [number, number, number];
   status: TripStatus;
   budgetCents: number | null;
   people?: number;
   note: string;
-  items?: Array<{ label: string; done: boolean; amountCents: number | null }>;
+  items?: Array<{
+    label: string;
+    done: boolean;
+    amountCents: number | null;
+    downPaymentCents?: number;
+    downPaymentPaid?: boolean;
+    installments?: number;
+    paidInstallments?: number;
+    /** [ano, mês 0-based, dia] */
+    firstDueDate?: [number, number, number];
+  }>;
 };
 
 /** Valores em CENTAVOS — o `_00` no fim deixa a unidade visível de relance. */
@@ -37,10 +50,18 @@ function viagens(): ViagemDemo[] {
   return [
     {
       dest: "Fernando de Noronha", whenText: "Novembro", ano: Y, status: "RESERVADO",
+      // Com data: o cartão ganha "faltam N dias" e a duração em noites.
+      ida: [Y, 10, 12], volta: [Y, 10, 19],
       budgetCents: 4200_00, people: 2,
       note: "Mergulho na Baía do Sancho, trilha do Atalaia. Passagem já emitida.",
       items: [
-        { label: "Passagem aérea", done: true, amountCents: 2180_00 },
+        // Entrada + parcelamento: R$ 500 na hora e o resto em 6x de R$ 280.
+        {
+          label: "Passagem aérea", done: true, amountCents: 2180_00,
+          downPaymentCents: 500_00, downPaymentPaid: true,
+          installments: 6, paidInstallments: 2,
+          firstDueDate: [Y, 7, 10],
+        },
         { label: "Pousada (5 noites)", done: true, amountCents: 1650_00 },
         { label: "Taxa de preservação + parque", done: true, amountCents: 520_00 },
         { label: "Mergulho batismo", done: false, amountCents: 380_00 },
@@ -59,6 +80,7 @@ function viagens(): ViagemDemo[] {
     },
     {
       dest: "Serra Gaúcha", whenText: "Junho", ano: Y - 1, status: "FEITA",
+      ida: [Y - 1, 5, 10], volta: [Y - 1, 5, 14],
       budgetCents: 900_00,
       note: "Gramado e Canela, vinícolas no caminho.",
       items: [
@@ -122,14 +144,24 @@ export async function semearDemo(
     },
   });
 
-  for (const { items, ano, ...v } of viagens()) {
+  for (const { items, ano, ida, volta, ...v } of viagens()) {
     await prisma.trip.create({
       data: {
         ...v,
         year: ano,
+        startDate: ida ? new Date(Date.UTC(...ida)) : null,
+        endDate: volta ? new Date(Date.UTC(...volta)) : null,
         boardId: board.id,
         items: items
-          ? { create: items.map((i, position) => ({ ...i, position })) }
+          ? {
+              create: items.map(({ firstDueDate, ...i }, position) => ({
+                ...i,
+                position,
+                firstDueDate: firstDueDate
+                  ? new Date(Date.UTC(...firstDueDate))
+                  : null,
+              })),
+            }
           : undefined,
       },
     });
