@@ -86,6 +86,11 @@ export interface TripDTO {
   note: string;
   createdAt: string;
   updatedAt: string;
+  /** Hospedagem: nome, endereço e o ponto no mapa. */
+  stayName: string;
+  stayAddress: string;
+  stayLat: number | null;
+  stayLng: number | null;
   items: ChecklistItemDTO[];
   preTasks: PreTaskDTO[];
   activities: ActivityDTO[];

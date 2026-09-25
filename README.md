@@ -273,3 +273,39 @@ Os testes cobrem o que quebraria em silêncio:
 ## 📄 Licença
 
 MIT — veja [LICENSE](./LICENSE).
+
+---
+
+## 🧭 Como o código está organizado
+
+O `BoardApp.tsx` chegou a ter 3.582 linhas e 24 componentes. Isso tornou as
+edições arriscadas — chegou a acontecer de um componente novo ser inserido na
+aba errada, porque num arquivo desse tamanho não dá para enxergar o contexto
+em volta do ponto que se está editando. Hoje cada módulo é um arquivo:
+
+```
+src/app/app/
+├─ BoardApp.tsx      estado do quadro, polling, linha do tempo
+├─ TripCard.tsx      cartão da viagem, seções por ano, checklist do cartão
+├─ TripModal.tsx     as abas e os campos da aba Viagem
+├─ Diario.tsx        editor Markdown
+├─ Hospedagem.tsx    busca de endereço e mapa
+├─ Gastos.tsx        checklist de gastos, parcelamento
+├─ Acerto.tsx        quem deve quanto a quem
+├─ AntesDeSair.tsx   tarefas de casa e pets
+├─ NoDestino.tsx     passeios e gastos avulsos
+├─ Arquivo.tsx       bloco "Já rolou"
+├─ ShareModal.tsx    membros, convites, renomear e excluir quadro
+└─ NewBoardModal.tsx
+```
+
+**CSS.** As regras base de campo usam `>` (`.field > input`), e não o
+descendente. Sem isso elas alcançavam qualquer campo aninhado — a caixinha do
+checklist virava um input de largura total, o checkbox do Markdown empurrava o
+texto para outra linha. Componente aninhado que quer o visual de campo pede
+por ele: `className="campo"` e `className="rotulo"`.
+
+**Migrações.** `npm run db:migrate -- nome_da_migracao` aplica, regenera o
+Prisma Client e derruba o servidor de desenvolvimento — que fica com o cliente
+antigo na memória e, sem isso, passa a responder "Unknown field" numa coluna
+que existe no banco.

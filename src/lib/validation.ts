@@ -86,6 +86,13 @@ const tripBase = z.object({
   // 20 mil, não 2 mil: o campo virou diário em Markdown, e um relato com os
   // dias separados passa dos 2.000 caracteres com facilidade.
   note: z.string().trim().max(20_000).optional().default(""),
+
+  // --- Hospedagem ---
+  stayName: z.string().trim().max(120).optional(),
+  stayAddress: z.string().trim().max(300).optional(),
+  // Nulo é válido: é como se apaga o pino do mapa.
+  stayLat: z.union([z.null(), z.coerce.number().min(-90).max(90)]).optional(),
+  stayLng: z.union([z.null(), z.coerce.number().min(-180).max(180)]).optional(),
 });
 
 /* O refinamento das datas é aplicado depois do .partial(), e não antes: em

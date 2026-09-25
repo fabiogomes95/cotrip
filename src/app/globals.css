@@ -787,7 +787,16 @@ a {
 .field {
   margin-bottom: 14px;
 }
-.field label {
+/* O `>` é deliberado, e é a correção de uma classe inteira de bug.
+   Sem ele estas regras alcançavam QUALQUER campo aninhado: a caixinha do
+   checklist virava um input de largura total, o rótulo "já paga" saía em
+   caixa alta, o checkbox do Markdown empurrava o texto para outra linha.
+   Foram três consertos pontuais antes de atacar a causa.
+
+   Componente aninhado que quer este visual pede por ele: `.campo` e
+   `.rotulo`. Quem não pede, não herda. */
+.field > label,
+.rotulo {
   display: block;
   font-size: 12px;
   font-weight: 700;
@@ -796,9 +805,10 @@ a {
   color: var(--ink-soft);
   margin-bottom: 6px;
 }
-.field input,
-.field textarea,
-.field select {
+.field > input,
+.field > textarea,
+.field > select,
+.campo {
   width: 100%;
   border: 1px solid var(--line-strong);
   background: var(--paper);
@@ -808,13 +818,15 @@ a {
   font-size: 15px;
   font-family: inherit;
 }
-.field textarea {
+.field > textarea,
+textarea.campo {
   resize: vertical;
   min-height: 64px;
 }
-.field input:focus,
-.field textarea:focus,
-.field select:focus {
+.field > input:focus,
+.field > textarea:focus,
+.field > select:focus,
+.campo:focus {
   outline: 2px solid var(--focus);
   outline-offset: 0;
   border-color: var(--focus);
@@ -1534,6 +1546,131 @@ a {
 }
 
 /* ============================================================
+   Hospedagem e mapa
+   ============================================================ */
+.hosp .hosp-end,
+.hosp-busca input {
+  margin-top: 6px;
+}
+.hosp-busca {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.hosp-busca input {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+  font-size: 13px;
+}
+
+.hosp-achados {
+  list-style: none;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.hosp-achados li + li {
+  border-top: 1px solid var(--line);
+}
+.hosp-achados button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+}
+.hosp-achados button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.mapa {
+  height: 220px;
+  margin-top: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  /* O Leaflet cria camadas posicionadas que escapam do arredondamento sem
+     isto — o mapa apareceria quadrado dentro da moldura redonda. */
+  overflow: hidden;
+  /* Abaixo do modal e de qualquer coisa fixa: o Leaflet usa z-index alto nos
+     próprios controles, e sem teto eles subiriam por cima do formulário. */
+  z-index: 0;
+}
+.mapa.carregando {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* Pino desenhado em CSS: o ícone padrão do Leaflet aponta para .png por
+   caminho relativo e some quando passa por bundler. */
+.pino-mapa .corpo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 2px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--teal);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.hosp-pe {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  font-size: 12px;
+}
+.hosp-pe .coord {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+.hosp-pe a {
+  color: var(--teal-deep);
+  font-weight: 600;
+}
+.hosp-pe .grow {
+  flex: 1;
+}
+.hosp-pe .limpar {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.hosp-pe .limpar:hover {
+  color: var(--danger);
+}
+.hosp-dica {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+/* A atribuição do OpenStreetMap é obrigatória pela licença dos dados; só
+   deixo discreta, nunca escondida. */
+.mapa .leaflet-control-attribution {
+  font-size: 9.5px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* ============================================================
    No destino — atividades e gastos avulsos
    ============================================================ */
 .ativ {
@@ -2005,11 +2142,6 @@ a {
   margin-left: -18px;
 }
 .md li.task-list-item > input[type="checkbox"] {
-  /* `width: auto` é o conserto de verdade: o diário vive dentro de um
-     `.field`, e `.field input` impõe largura 100% a qualquer input ali
-     dentro — o que esticava a caixinha pela linha inteira e jogava o texto
-     para baixo dela. */
-  width: auto;
   margin: 0 6px 0 0;
   padding: 0;
   accent-color: var(--teal);
@@ -2119,13 +2251,10 @@ a {
   outline-offset: 2px;
 }
 
-/* Os campos herdam a moldura de `.field input` de propósito: ficam com a
-   mesma cara dos outros campos do formulário, o que deixa óbvio que dá para
-   editar o nome e o valor ali mesmo. Aqui só encolho padding e fonte — são
-   várias linhas empilhadas, e o tamanho cheio deixaria o bloco alto demais.
-
-   Os seletores precisam de `.check-linha` na frente: `.field input` tem
-   especificidade (0,1,1) e venceria um `.check-txt` sozinho (0,1,0). */
+/* Pedem a moldura de campo pela classe `.campo` no JSX, para ficarem com a
+   mesma cara dos outros campos do formulário — o que deixa óbvio que dá para
+   editar ali mesmo. Aqui só encolho padding e fonte: são várias linhas
+   empilhadas, e o tamanho cheio deixaria o bloco alto demais. */
 .check-linha .check-txt,
 .check-linha .check-val {
   padding: 7px 9px;
@@ -2279,18 +2408,15 @@ a {
    .field, e `.field label` aplica caixa alta e negrito a todo rótulo ali
    dentro — o que faz sentido nos rótulos de campo, mas não neste, que é uma
    marca ao lado da caixinha. */
+/* `.linha label.ja-paga` e não `.ja-paga`: a regra genérica dos rótulos do
+   painel (`.check-pag .linha label`) tem especificidade maior e esticaria
+   esta marca com `flex: 1`. Os resets de caixa alta que havia aqui saíram —
+   depois do `.field > label`, não há mais o que desfazer. */
 .check-pag .linha label.ja-paga {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   flex: none;
-  /* Desfaz o visual de rótulo de campo herdado de `.field label`: aqui é uma
-     marca ao lado da caixinha, não o título de um campo. Precisa zerar as
-     três propriedades — sobrescrever só o tamanho deixava o texto em caixa
-     alta e negrito. */
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: 500;
   font-size: 11.5px;
   color: var(--ink-soft);
   cursor: pointer;

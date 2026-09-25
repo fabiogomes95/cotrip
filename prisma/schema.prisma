@@ -61,32 +61,46 @@ enum TripStatus {
 }
 
 model Trip {
-  id          String          @id @default(cuid())
-  board       Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  board       Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
   boardId     String
   dest        String
-  whenText    String          @default("") // época em texto livre: "Julho", "Carnaval"...
-  year        Int             @default(0) // 0 = "algum dia" (sem data definida)
+  whenText    String     @default("") // época em texto livre: "Julho", "Carnaval"...
+  year        Int        @default(0) // 0 = "algum dia" (sem data definida)
   // Datas exatas, quando já se sabe. @db.Date guarda só a data, sem hora e
   // sem fuso: uma viagem que começa dia 12 começa dia 12 em qualquer lugar do
   // mundo. Com DateTime completo, quem abrisse o app em outro fuso veria 11.
-  startDate   DateTime?       @db.Date
-  endDate     DateTime?       @db.Date
-  status      TripStatus      @default(IDEIA)
+  startDate   DateTime?  @db.Date
+  endDate     DateTime?  @db.Date
+  status      TripStatus @default(IDEIA)
   // Dinheiro é guardado em CENTAVOS, sempre. O nome do campo carrega a
   // unidade de propósito: "budget" guardando centavos seria uma armadilha
   // silenciosa para quem lesse o código depois.
   budgetCents Int? // orçamento estimado por pessoa, em centavos
   // Quantas pessoas vão. Valores (budget e itens do checklist) continuam
   // sendo POR PESSOA; isto serve para o app mostrar também o total.
-  people      Int             @default(1)
-  note        String          @default("")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  items       ChecklistItem[]
-  preTasks    PreTripTask[]
-  activities  Activity[]
-  expenses    Expense[]
+  people      Int        @default(1)
+  note        String     @default("")
+
+  /**
+   * Hospedagem. Um lugar por viagem: e o caso comum, e "a casa do primo em
+   * Jampa" e exatamente o que se quer achar no mapa depois. Viagem com duas
+   * bases (Lisboa e Porto) pediria um modelo proprio — quando isso doer,
+   * vira tabela.
+   */
+  stayName    String @default("") // "Casa do Junete", "Pousada do Vale"
+  stayAddress String @default("")
+  /// Float e nao Decimal: coordenada nao e dinheiro. A precisao de um double
+  /// passa de centimetros, muito alem do que um pino de mapa precisa.
+  stayLat     Float?
+  stayLng     Float?
+
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  items      ChecklistItem[]
+  preTasks   PreTripTask[]
+  activities Activity[]
+  expenses   Expense[]
 
   @@index([boardId])
 }
@@ -113,6 +127,7 @@ model ChecklistItem {
    * tivesse valor ou data propria.
    */
   /**
+   * /**
    * /**
    * /**
    * /* Entrada: o pedaco pago na hora da compra. O que sobra (amountCents menos

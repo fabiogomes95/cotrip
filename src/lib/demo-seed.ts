@@ -30,6 +30,8 @@ type ViagemDemo = {
   status: TripStatus;
   budgetCents: number | null;
   people?: number;
+  /** Hospedagem, para a demo mostrar o mapa. */
+  hosp?: { nome: string; endereco: string; lat: number; lng: number };
   note: string;
   /** Passeios com contato, para a demo mostrar o módulo do destino. */
   passeios?: Array<{ label: string; contact?: string; timeText?: string; status: "IDEIA" | "AGENDADO" | "FEITO" }>;
@@ -59,6 +61,11 @@ function viagens(): ViagemDemo[] {
       // Com data: o cartão ganha "faltam N dias" e a duração em noites.
       ida: [Y, 10, 12], volta: [Y, 10, 19],
       budgetCents: 4200_00, people: 2,
+      hosp: {
+        nome: "Pousada Maravilha",
+        endereco: "Baía do Sueste, Fernando de Noronha — PE",
+        lat: -3.86694, lng: -32.42806,
+      },
       note: `## Antes de ir
 
 - Passagem emitida, **entrada paga** e o resto em 6x
@@ -115,6 +122,11 @@ function viagens(): ViagemDemo[] {
     {
       dest: "Jericoacoara", whenText: "Setembro", ano: Y, status: "PLANEJANDO",
       budgetCents: 1500_00,
+      hosp: {
+        nome: "Casa do primo",
+        endereco: "Rua das Dunas, Jericoacoara — CE",
+        lat: -2.79556, lng: -40.51222,
+      },
       note: "Buggy nas dunas, pôr do sol na Duna do Pôr do Sol, rede no mar.",
       items: [
         { label: "Passagem + transfer", done: true, amountCents: 740_00 },
@@ -188,11 +200,15 @@ export async function semearDemo(
     },
   });
 
-  for (const { items, tarefas, passeios, gastos, ano, ida, volta, ...v } of viagens()) {
+  for (const { items, tarefas, passeios, gastos, hosp, ano, ida, volta, ...v } of viagens()) {
     await prisma.trip.create({
       data: {
         ...v,
         year: ano,
+        stayName: hosp?.nome ?? "",
+        stayAddress: hosp?.endereco ?? "",
+        stayLat: hosp?.lat ?? null,
+        stayLng: hosp?.lng ?? null,
         startDate: ida ? new Date(Date.UTC(...ida)) : null,
         endDate: volta ? new Date(Date.UTC(...volta)) : null,
         boardId: board.id,
