@@ -83,7 +83,9 @@ const tripBase = z.object({
   people: z.coerce.number().int().min(1, "Precisa ser pelo menos 1").max(50).optional(),
   startDate: dataISO,
   endDate: dataISO,
-  note: z.string().trim().max(2000).optional().default(""),
+  // 20 mil, não 2 mil: o campo virou diário em Markdown, e um relato com os
+  // dias separados passa dos 2.000 caracteres com facilidade.
+  note: z.string().trim().max(20_000).optional().default(""),
 });
 
 /* O refinamento das datas é aplicado depois do .partial(), e não antes: em

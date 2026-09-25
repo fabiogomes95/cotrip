@@ -25,6 +25,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Diário em Markdown**: as anotações aceitam títulos, listas, tarefas, destaques e links, com abas de escrever e ler. O texto é guardado como Markdown puro — continua legível fora do app e sem prender o conteúdo a nenhum editor.
 - **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
 - **Parcelamento com entrada**: um item do checklist distingue *contratado* de *pago*. "R$ 500 de entrada + 6x de R$ 280, 2 pagas" mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
 - **Sair do quadro**: quem foi convidado vai embora sozinho, sem depender do dono. (O dono não sai — precisa excluir o quadro antes.)
@@ -208,7 +209,7 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ```bash
 npm run typecheck   # tipos
 npm run lint        # ESLint
-npm test            # 116 testes
+npm test            # 127 testes
 ```
 
 Os testes cobrem o que quebraria em silêncio:
@@ -220,6 +221,8 @@ Os testes cobrem o que quebraria em silêncio:
 - **acerto de contas** — as invariantes de que os saldos somam zero e de que
   as transferências sugeridas zeram todo mundo (`acerto`)
 - **validação** — os schemas, incluindo a regressão do `null` virando `0`
+- **Markdown** (`markdown`) — a limpeza da marcação para o preview do cartão,
+  com a garantia de que texto sem formatação passa intacto
 - **isolamento entre quadros** (`access`) — o mais importante: roda contra um
   banco de verdade e confirma que ninguém alcança viagem ou item de um quadro
   do qual não é membro

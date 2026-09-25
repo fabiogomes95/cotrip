@@ -1470,6 +1470,204 @@ a {
 }
 
 /* ============================================================
+   Diário em Markdown
+   ============================================================ */
+.diario-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.diario-topo label {
+  margin: 0;
+}
+.diario-topo .abas {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 2px;
+}
+.diario-topo .abas button {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 11px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.diario-topo .abas button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.diario-atalhos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+.diario-atalhos button {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+.diario-atalhos button:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.diario-dica {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.diario-dica code {
+  padding: 1px 4px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+/* A leitura ganha a mesma moldura do textarea, para a troca de aba não
+   deslocar nada em volta. */
+.diario-leitura {
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  min-height: 120px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* ---- o Markdown renderizado ---- */
+.md {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md h1,
+.md h2,
+.md h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 18px 0 6px;
+}
+.md h1 {
+  font-size: 19px;
+}
+.md h2 {
+  font-size: 16.5px;
+}
+.md h3 {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+.md p {
+  margin: 0 0 10px;
+}
+.md strong {
+  font-weight: 700;
+}
+.md ul,
+.md ol {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.md li {
+  margin-bottom: 3px;
+}
+/* Lista de tarefas do GFM: o marcador some, sobra a caixinha.
+   O react-markdown já marca estes itens com .task-list-item. */
+.md li.task-list-item {
+  list-style: none;
+  margin-left: -18px;
+}
+.md li.task-list-item > input[type="checkbox"] {
+  /* `width: auto` é o conserto de verdade: o diário vive dentro de um
+     `.field`, e `.field input` impõe largura 100% a qualquer input ali
+     dentro — o que esticava a caixinha pela linha inteira e jogava o texto
+     para baixo dela. */
+  width: auto;
+  margin: 0 6px 0 0;
+  padding: 0;
+  accent-color: var(--teal);
+  vertical-align: baseline;
+}
+.md blockquote {
+  margin: 0 0 10px;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--teal);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.md a {
+  color: var(--teal-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md code {
+  padding: 1px 5px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  font-size: 13px;
+}
+.md pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  overflow-x: auto;
+}
+.md pre code {
+  padding: 0;
+  background: none;
+}
+.md hr {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+/* Tabela larga rola dentro de si, em vez de esticar o modal. */
+.md table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0 0 10px;
+  font-size: 13.5px;
+}
+.md th,
+.md td {
+  border: 1px solid var(--line);
+  padding: 5px 9px;
+  text-align: left;
+}
+.md th {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+
+/* ============================================================
    Checklist da viagem
    ============================================================ */
 .check-lista {

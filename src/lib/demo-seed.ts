@@ -53,7 +53,20 @@ function viagens(): ViagemDemo[] {
       // Com data: o cartão ganha "faltam N dias" e a duração em noites.
       ida: [Y, 10, 12], volta: [Y, 10, 19],
       budgetCents: 4200_00, people: 2,
-      note: "Mergulho na Baía do Sancho, trilha do Atalaia. Passagem já emitida.",
+      note: `## Antes de ir
+
+- Passagem emitida, **entrada paga** e o resto em 6x
+- Taxa de preservação e do parque já quitadas
+- Falta fechar o **mergulho batismo**
+
+## O que não pode faltar
+
+- [x] Baía do Sancho no fim da tarde
+- [ ] Trilha do Atalaia (agendar com antecedência)
+- [ ] Pôr do sol no Boldró
+
+> A trilha do Atalaia tem vaga limitada por dia — dá para agendar no ICMBio
+> assim que a passagem sai.`,
       items: [
         // Entrada + parcelamento: R$ 500 na hora e o resto em 6x de R$ 280.
         {
