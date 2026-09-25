@@ -328,6 +328,22 @@ a {
 }
 
 /* ---------- stats ---------- */
+/* Bloco de fechamento no fim da página. */
+.resumo {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.resumo-tit {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.resumo .stats {
+  margin-top: 12px;
+}
+
 .stats {
   /* Grade em vez de flex-wrap: com flex as caixas ficavam com larguras
      diferentes conforme o conteudo, e no celular isso virava um degrau feio.
@@ -524,7 +540,9 @@ a {
   border: 0;
   background: transparent;
   color: inherit;
-  padding: 13px 14px 12px 16px;
+  /* Sem padding embaixo: o checklist e o rodapé são irmãos deste botão
+     agora (antes ficavam dentro dele) e trazem o próprio espaçamento. */
+  padding: 13px 14px 0 16px;
 }
 .trip-row1 {
   display: flex;
@@ -563,10 +581,21 @@ a {
 }
 .trip-foot {
   display: flex;
-  align-items: center;
+  /* baseline não serve aqui: o bloco da esquerda pode ter duas linhas.
+     flex-end deixa "editar →" alinhado com a última delas. */
+  align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
   margin-top: 11px;
+  padding: 0 14px 12px 16px;
+}
+/* O total dos dois/três fica embaixo, discreto. */
+.budget .total {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-faint);
 }
 .budget {
   font-size: 13px;
@@ -583,10 +612,23 @@ a {
   font-weight: 500;
   font-style: italic;
 }
+/* Virou <button> de verdade: antes era um <span> dentro do botão do cartão,
+   e o cartão inteiro abria a viagem. Precisa dos resets. */
 .edit-hint {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
   font-size: 12px;
   color: var(--ink-faint);
   font-weight: 600;
+  /* Nunca quebra em duas linhas, mesmo com o orçamento comprido ao lado. */
+  white-space: nowrap;
+  flex: none;
+}
+.edit-hint:hover {
+  color: var(--teal);
 }
 
 .status {
@@ -787,6 +829,10 @@ a {
 @media (min-width: 420px) {
   .seg {
     grid-template-columns: repeat(4, 1fr);
+  }
+  /* A variante de 2 opções não vira 4 colunas: seriam duas vazias. */
+  .seg.seg-2 {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 .seg button {
@@ -1021,6 +1067,331 @@ a {
     transition: none !important;
   }
 }
+/* Bloco de exclusão do quadro, no rodapé do modal. Separado por uma linha e
+   com fundo levemente avermelhado: quem está só convidando alguém precisa
+   enxergar na hora que ali embaixo a natureza da ação muda. */
+.zona-perigo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.zona-perigo .txt {
+  flex: 1;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.zona-perigo .txt b {
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.zona-perigo .txt span {
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.35;
+}
+
+/* Estado "armado" do botão destrutivo: preenchido, para ficar claro que o
+   próximo clique não é mais um ensaio. */
+.btn-danger.armado {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-mini {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* ---- datas e contagem regressiva ---- */
+.trip-datas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.trip-datas .conta {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+/* Perto da viagem o selo ganha cor; longe fica neutro, para não gritar numa
+   lista cheia de ideias distantes. */
+.trip-datas .conta.e-hoje,
+.trip-datas .conta.e-andamento {
+  background: color-mix(in srgb, var(--st-reserv) 18%, transparent);
+  color: var(--st-reserv);
+}
+.trip-datas .conta.e-passado {
+  background: transparent;
+  color: var(--ink-faint);
+  padding-left: 0;
+}
+.trip-datas .dur {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.dica-datas {
+  margin: -6px 0 14px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+/* O input date nativo precisa combinar com os outros campos. */
+.field input[type="date"] {
+  font-family: inherit;
+  min-height: 42px;
+}
+.field input[type="date"]:disabled,
+.field select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Solo x compartilhado
+   ============================================================ */
+
+/* Selo ao lado do nome do quadro. Neutro quando é só seu, com a cor do
+   app quando tem mais gente — a diferença de cor é o que se lê de longe,
+   antes mesmo de ler a palavra. */
+.selo-quadro {
+  display: inline-block;
+  margin-left: 9px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  background: color-mix(in srgb, var(--teal) 14%, transparent);
+  color: var(--teal-deep);
+}
+.selo-quadro.solo {
+  background: var(--surface-2);
+  color: var(--ink-faint);
+}
+
+/* Total da viagem no modal, logo abaixo de orçamento × pessoas. */
+.total-viagem {
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.total-viagem b {
+  color: var(--ink);
+}
+
+/* Variante de duas colunas do segmentado, com título e explicação.
+   O `.seg` normal (status) tem 4 botões de uma palavra; aqui são 2 com
+   uma linha de apoio, então precisam de mais respiro e alinhamento à
+   esquerda para o texto secundário não ficar solto no meio. */
+.seg.seg-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.seg.seg-2 button {
+  align-items: flex-start;
+  text-align: left;
+  gap: 2px;
+  padding: 10px 12px;
+}
+.seg.seg-2 .t {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.seg.seg-2 .d {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  line-height: 1.3;
+}
+.seg.seg-2 button[aria-pressed="true"] .d {
+  color: var(--ink-soft);
+}
+
+/* ============================================================
+   Checklist no cartão
+   ============================================================ */
+.card-check {
+  padding: 0 14px 0 16px;
+  margin-top: 10px;
+}
+
+.card-check-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.card-check-lista li {
+  display: grid;
+  grid-template-columns: 17px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+}
+
+.card-check-box {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--paper);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.card-check-lista li.feito .card-check-box {
+  background: var(--st-reserv);
+  border-color: var(--st-reserv);
+}
+.card-check-box:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.card-check-txt {
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-check-lista li.feito .card-check-txt {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+.card-check-val {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.card-check-mais {
+  border: 0;
+  background: transparent;
+  padding: 3px 0 0 24px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+}
+.card-check-mais:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   "Já rolou" — bloco recolhido das viagens feitas
+   ============================================================ */
+.arquivo {
+  margin-top: 26px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.arquivo summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+}
+/* Tira o triângulo padrão do <details> nos dois motores, para usar o meu. */
+.arquivo summary::-webkit-details-marker {
+  display: none;
+}
+.arquivo .seta {
+  color: var(--ink-faint);
+  font-size: 11px;
+  transition: transform 0.18s ease;
+}
+.arquivo[open] .seta {
+  transform: rotate(90deg);
+}
+.arquivo .tit {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.arquivo .meta {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.arquivo .meta b {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.arquivo-lista {
+  list-style: none;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Sem limite, no monitor largo o destino e o valor ficam em pontas opostas
+     da tela e o olho perde a ligação entre os dois. */
+  max-width: 620px;
+}
+.arquivo-lista button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  padding: 7px 8px;
+  border-radius: var(--r-sm);
+}
+.arquivo-lista button:hover {
+  background: var(--surface-2);
+}
+.arquivo-lista .ano {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.arquivo-lista .dest {
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--st-feita) 60%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arquivo-lista .val {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
 /* ============================================================
    Checklist da viagem
    ============================================================ */
@@ -1033,6 +1404,13 @@ a {
 
 /* Grade, não flex: as colunas precisam se alinhar entre as linhas, senão
    cada valor cai numa posição diferente e a coluna de dinheiro fica torta. */
+/* Cada item é uma pilha: a linha principal e, opcionalmente, o pagamento. */
+.check-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .check-linha {
   display: grid;
   grid-template-columns: 24px 1fr auto 74px 26px;
@@ -1055,7 +1433,7 @@ a {
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.check-linha.feito .check-box {
+.check-item.feito .check-box {
   background: var(--st-reserv);
   border-color: var(--st-reserv);
   color: #fff;
@@ -1078,7 +1456,7 @@ a {
   font-size: 14px;
   min-width: 0;
 }
-.check-linha.feito .check-txt {
+.check-item.feito .check-txt {
   color: var(--ink-faint);
   text-decoration: line-through;
 }
@@ -1115,6 +1493,121 @@ a {
 .check-del:hover {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
+}
+
+/* ---- pagamento do item ---- */
+
+/* Botão discreto que resume e abre o painel. Alinhado com o texto do item
+   (mesmo recuo da caixinha) para ficar claro que pertence àquela linha. */
+.check-pag-abrir {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 32px;
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.check-pag-abrir:hover {
+  color: var(--teal);
+}
+.check-pag-abrir .seta {
+  font-size: 9px;
+}
+
+.check-pag {
+  margin: 4px 0 8px 32px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.check-pag .linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.check-pag .linha label,
+.check-pag .linha .rot {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.check-pag .linha input {
+  width: 128px;
+  flex: none;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.check-pag .linha input[type="number"] {
+  width: 72px;
+  text-align: center;
+}
+
+/* Contador de parcelas pagas: dois botões e o placar no meio. */
+.check-pag .contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.check-pag .contador button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.check-pag .contador button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.check-pag .contador button:disabled {
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+.check-pag .contador .n {
+  min-width: 46px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-pag .resumo {
+  margin: 0;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.check-pag .resumo b {
+  color: var(--ink);
+}
+
+/* Segunda linha do resumo: pago x a pagar. */
+.check-soma.pagamento {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+.check-soma.pagamento .falta {
+  color: var(--sun);
+  font-weight: 600;
 }
 
 .check-novo {

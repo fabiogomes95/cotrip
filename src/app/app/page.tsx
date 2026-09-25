@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AppPage({
   searchParams,
 }: {
-  searchParams: Promise<{ board?: string }>;
+  searchParams: Promise<{ board?: string; convidar?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -44,7 +44,7 @@ export default async function AppPage({
     memberCount: m.board._count.members,
   }));
 
-  const { board: boardParam } = await searchParams;
+  const { board: boardParam, convidar } = await searchParams;
   const active = boards.find((b) => b.id === boardParam) ?? boards[0];
 
   const [tripsRaw, membersRaw] = await Promise.all([
@@ -71,11 +71,19 @@ export default async function AppPage({
 
   return (
     <BoardApp
+      /* A key é o que faz trocar de quadro remontar o componente, em vez de
+         só trocar props. Sem ela o estado do quadro anterior (viagens,
+         membros, filtro) vazava para o próximo. */
+      key={active.id}
       currentUser={{ id: userId, name: session.user.name ?? "", email: session.user.email ?? "" }}
       boards={boards}
       activeBoard={{ id: active.id, name: active.name, role: active.role }}
       initialTrips={trips}
       initialMembers={members}
+      // Vem do "Novo quadro" quando a pessoa escolhe criar já compartilhado:
+      // o quadro abre com a janela de convite na frente, em vez de exigir
+      // que ela procure o botão Compartilhar depois.
+      abrirCompartilhar={convidar === "1"}
     />
   );
 }

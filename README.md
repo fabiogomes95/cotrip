@@ -20,11 +20,13 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 ## ✨ Funcionalidades
 
 - **Contas de verdade** (email + senha) com sessões via Auth.js (NextAuth v5).
-- **Quadros compartilhados**: convide alguém por email; se a pessoa já tem conta, entra na hora; se não, o convite é aceito quando ela se cadastra.
+- **Quadros solo e compartilhados**: um quadro com você sozinho é o seu espaço privado — ninguém mais enxerga. Convide alguém por email e ele vira compartilhado; se a pessoa já tem conta, entra na hora, se não, o convite é aceito quando ela se cadastra. O app mostra de qual tipo é cada quadro e adapta os textos.
 - **Multi-tenant**: cada quadro é isolado; o acesso é validado no servidor em toda requisição.
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Quantas pessoas vão** por viagem: os valores continuam por pessoa, e o app calcula o total do grupo. Viagem criada num quadro solo já nasce com 1 pessoa.
+- **Viagens feitas são arquivadas** num bloco "Já rolou" recolhido no fim, com o total gasto — a linha do tempo fica só com o que está por vir.
 - **Checklist com controle financeiro**: cada viagem tem itens (passagem, hospedagem, seguro…) que se marcam como feitos e recebem o **valor real** pago. O orçamento da viagem é a *estimativa*; a soma dos itens marcados é o *gasto*. O app mostra os dois lado a lado e avisa quando passou do previsto.
 - **Tema claro/escuro** automático.
 - **Sincronização leve**: o quadro atualiza sozinho (polling) para refletir edições de quem está junto.
@@ -50,6 +52,13 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - `BoardMember` — vínculo usuário↔quadro com papel (`OWNER` / `EDITOR`).
 - `Trip` — uma viagem, pertence a um quadro.
 - `ChecklistItem` — um item do checklist de uma viagem (rótulo, feito ou não, valor real).
+
+> **Dinheiro é sempre guardado em centavos**, como inteiro (`budgetCents`,
+> `amountCents`). O nome do campo carrega a unidade de propósito: ponto
+> flutuante acumula erro de arredondamento, e num app que soma orçamento isso
+> vira diferença de reais no total.
+
+> Não existe campo "solo" no banco: um quadro é solo quando tem um único `BoardMember`. O isolamento é o mesmo de sempre — quem não é membro não lê nada — então privacidade e compartilhamento saem do mesmo mecanismo, sem permissão por viagem.
 - `Invitation` — convite pendente por email (aceito no cadastro).
 
 O isolamento multi-tenant é garantido em cada rota: nenhuma viagem é lida ou escrita sem antes checar que o usuário é membro do quadro dono dela (`src/lib/auth-helpers.ts`).
@@ -115,6 +124,8 @@ npm run dev            # http://localhost:3000
 | `npm run db:seed` | Popula dados de exemplo |
 | `npm run db:studio` | Abre o Prisma Studio |
 | `npm run typecheck` | Checagem de tipos (tsc) |
+| `npm run test` | Testes (runner nativo do Node) |
+| `npm run lint` | ESLint |
 
 ---
 
@@ -137,6 +148,7 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 | `POST` | `/api/boards/:id/trips` | Cria viagem |
 | `PATCH` | `/api/trips/:id` | Atualiza viagem |
 | `DELETE` | `/api/trips/:id` | Exclui viagem |
+| `GET` | `/api/cron/reseed-demo` | Repõe a conta de demonstração (só o cron da Vercel) |
 | `GET` | `/api/trips/:id/items` | Itens do checklist |
 | `POST` | `/api/trips/:id/items` | Adiciona item ao checklist |
 | `PATCH` | `/api/items/:id` | Marca/renomeia/lança o valor de um item |
@@ -157,6 +169,7 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
    | `DATABASE_URL` | connection string **pooled** (host termina em `-pooler`) |
    | `DIRECT_URL` | connection string **direta** (sem `-pooler`) |
    | `AUTH_SECRET` | `openssl rand -base64 32` |
+   | `CRON_SECRET` | `openssl rand -base64 24` — protege o reset diário da demo |
 
    `AUTH_URL` pode ficar de fora: o Auth.js v5 detecta o domínio sozinho na Vercel.
 
@@ -170,6 +183,22 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 > ⚠️ **Preview deployments:** eles também rodam `migrate deploy`. Aponte o
 > `DATABASE_URL`/`DIRECT_URL` do ambiente *Preview* da Vercel para um branch de
 > dev do Neon, senão um preview com migração nova altera o banco de produção.
+
+---
+
+## 🧪 Qualidade
+
+```bash
+npm run typecheck   # tipos
+npm run lint        # ESLint
+npm test            # 46 testes
+```
+
+Os testes cobrem o que quebraria em silêncio: as contas de dinheiro
+(`src/lib/format.ts`, `src/lib/checklist.ts`), os schemas de validação e —
+o mais importante — o **isolamento entre quadros** (`src/lib/access.test.ts`),
+que roda contra um banco de verdade e confirma que ninguém alcança viagem ou
+item de um quadro do qual não é membro.
 
 ---
 

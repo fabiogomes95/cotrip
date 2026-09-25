@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Trip" ADD COLUMN     "people" INTEGER NOT NULL DEFAULT 1;

@@ -59,18 +59,29 @@ enum TripStatus {
 }
 
 model Trip {
-  id        String          @id @default(cuid())
-  board     Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  boardId   String
-  dest      String
-  whenText  String          @default("") // época em texto livre: "Julho", "Carnaval"...
-  year      Int             @default(0) // 0 = "algum dia" (sem data definida)
-  status    TripStatus      @default(IDEIA)
-  budget    Int? // orçamento estimado por pessoa (R$), opcional
-  note      String          @default("")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  items     ChecklistItem[]
+  id          String          @id @default(cuid())
+  board       Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId     String
+  dest        String
+  whenText    String          @default("") // época em texto livre: "Julho", "Carnaval"...
+  year        Int             @default(0) // 0 = "algum dia" (sem data definida)
+  // Datas exatas, quando já se sabe. @db.Date guarda só a data, sem hora e
+  // sem fuso: uma viagem que começa dia 12 começa dia 12 em qualquer lugar do
+  // mundo. Com DateTime completo, quem abrisse o app em outro fuso veria 11.
+  startDate   DateTime?       @db.Date
+  endDate     DateTime?       @db.Date
+  status      TripStatus      @default(IDEIA)
+  // Dinheiro é guardado em CENTAVOS, sempre. O nome do campo carrega a
+  // unidade de propósito: "budget" guardando centavos seria uma armadilha
+  // silenciosa para quem lesse o código depois.
+  budgetCents Int? // orçamento estimado por pessoa, em centavos
+  // Quantas pessoas vão. Valores (budget e itens do checklist) continuam
+  // sendo POR PESSOA; isto serve para o app mostrar também o total.
+  people      Int             @default(1)
+  note        String          @default("")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ChecklistItem[]
 
   @@index([boardId])
 }
@@ -78,16 +89,42 @@ model Trip {
 // Itens do checklist de uma viagem: "Passagem", "Hospedagem"...
 // O budget da Trip e a ESTIMATIVA; a soma dos amounts daqui e o REAL gasto.
 model ChecklistItem {
-  id        String   @id @default(cuid())
-  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  tripId    String
-  label     String
-  done      Boolean  @default(false)
-  amount    Int? // valor real por pessoa (R$); null = ainda nao se sabe
-  position  Int      @default(0) // ordem de exibicao, definida pelo usuario
-  createdAt DateTime @default(now())
+  id          String  @id @default(cuid())
+  trip        Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId      String
+  label       String
+  done        Boolean @default(false)
+  amountCents Int? // valor total do item por pessoa, em centavos; null = nao se sabe
+
+  /**
+   * Pagamento.
+   * `done` continua significando CONTRATADO (resolvido, reservado), que e
+   * coisa diferente de PAGO: passagem parcelada em 6x esta contratada no dia
+   * um e paga so no sexto mes. Guardar as duas coisas separadas e o que
+   * permite responder "quanto ainda vai sair do bolso".
+   * Modelei como tres escalares em vez de uma tabela de parcelas porque tudo
+   * que o app precisa e derivavel deles: valor da parcela, total pago, o que
+   * falta e o proximo vencimento. Uma tabela so se pagaria se cada parcela
+   * tivesse valor ou data propria.
+   */
+  installments     Int       @default(1) // em quantas vezes
+  paidInstallments Int       @default(0) // quantas ja foram pagas
+  firstDueDate     DateTime? @db.Date // vencimento da primeira parcela
+  position         Int       @default(0) // ordem de exibicao, definida pelo usuario
+  createdAt        DateTime  @default(now())
 
   @@index([tripId])
+}
+
+// Uma tentativa registrada para limite de taxa (ver src/lib/rate-limit.ts).
+// Fica no banco, e não em memória, porque na Vercel cada requisição pode cair
+// numa instância diferente — um contador em memória zeraria a cada uma.
+model RateHit {
+  id        String   @id @default(cuid())
+  key       String // "escopo:hash-do-ip" — o IP em si não é guardado
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
 }
 
 model Invitation {

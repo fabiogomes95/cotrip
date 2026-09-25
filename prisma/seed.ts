@@ -1,88 +1,17 @@
-import { PrismaClient, TripStatus } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
+import { DEMO_EMAIL, DEMO_SENHA, semearDemo } from "../src/lib/demo-seed";
 
+// Os dados vivem em src/lib/demo-seed.ts porque a rota de cron que repõe a
+// demo em produção usa exatamente os mesmos.
 const prisma = new PrismaClient();
 
-const YEAR = new Date().getFullYear();
-
 async function main() {
-  const email = "demo@cotrip.app";
-  const passwordHash = await bcrypt.hash("demo1234", 10);
-
-  // Usuário demo (idempotente)
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, name: "Viajante Demo", passwordHash },
-  });
-
-  // Quadro demo — evita duplicar em re-seeds
-  const existing = await prisma.board.findFirst({
-    where: { name: "Nossas Viagens", members: { some: { userId: user.id } } },
-  });
-  if (existing) {
-    console.log("Seed já aplicado. Login demo: demo@cotrip.app / demo1234");
-    return;
-  }
-
-  const board = await prisma.board.create({
-    data: {
-      name: "Nossas Viagens",
-      members: { create: { userId: user.id, role: "OWNER" } },
-    },
-  });
-
-  // `items` = checklist da viagem. O `amount` de cada item e o valor REAL;
-  // o `budget` da viagem e a estimativa. A graca da demo e mostrar as duas
-  // coisas divergindo: Noronha passou do orcado, Jeri ainda esta abaixo.
-  const trips: Array<{
-    dest: string;
-    whenText: string;
-    year: number;
-    status: TripStatus;
-    budget: number | null;
-    note: string;
-    items?: Array<{ label: string; done: boolean; amount: number | null }>;
-  }> = [
-    {
-      dest: "Fernando de Noronha", whenText: "Novembro", year: YEAR, status: "RESERVADO", budget: 4200,
-      note: "Mergulho na Baía do Sancho, trilha do Atalaia. Passagem já emitida.",
-      items: [
-        { label: "Passagem aérea", done: true, amount: 2180 },
-        { label: "Pousada (5 noites)", done: true, amount: 1650 },
-        { label: "Taxa de preservação + parque", done: true, amount: 520 },
-        { label: "Mergulho batismo", done: false, amount: 380 },
-        { label: "Aluguel de buggy", done: false, amount: null },
-      ],
-    },
-    {
-      dest: "Jericoacoara", whenText: "Setembro", year: YEAR, status: "PLANEJANDO", budget: 1500,
-      note: "Buggy nas dunas, pôr do sol na Duna do Pôr do Sol, rede no mar.",
-      items: [
-        { label: "Passagem + transfer", done: true, amount: 740 },
-        { label: "Pousada", done: false, amount: 520 },
-        { label: "Passeio de buggy", done: false, amount: null },
-      ],
-    },
-    { dest: "Buenos Aires", whenText: "Abril", year: YEAR + 1, status: "IDEIA", budget: 3500, note: "Tango em San Telmo, parrilla, feira de Recoleta." },
-    { dest: "Chapada Diamantina", whenText: "Julho", year: YEAR + 1, status: "IDEIA", budget: 2200, note: "Cachoeira da Fumaça, Poço Azul, Vale do Pati." },
-    { dest: "Lisboa & Porto", whenText: "Maio", year: YEAR + 2, status: "IDEIA", budget: 9000, note: "Duas semanas, comboio entre as cidades, Sintra num bate-volta." },
-    { dest: "Japão", whenText: "Temporada das cerejeiras", year: 0, status: "IDEIA", budget: 15000, note: "O sonho antigo. Tóquio, Kyoto, talvez Osaka." },
-  ];
-
-  for (const { items, ...t } of trips) {
-    await prisma.trip.create({
-      data: {
-        ...t,
-        boardId: board.id,
-        items: items
-          ? { create: items.map((i, position) => ({ ...i, position })) }
-          : undefined,
-      },
-    });
-  }
-
-  console.log("Seed pronto! Login demo: demo@cotrip.app / demo1234");
+  const { criou } = await semearDemo(prisma);
+  console.log(
+    criou
+      ? `Seed pronto! Login demo: ${DEMO_EMAIL} / ${DEMO_SENHA}`
+      : `Seed já aplicado. Login demo: ${DEMO_EMAIL} / ${DEMO_SENHA}`,
+  );
 }
 
 main()

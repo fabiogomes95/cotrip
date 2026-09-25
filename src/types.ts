@@ -7,8 +7,13 @@ export interface ChecklistItemDTO {
   tripId: string;
   label: string;
   done: boolean;
-  /** Valor real gasto, por pessoa (R$). null = ainda não se sabe. */
-  amount: number | null;
+  /** Valor TOTAL do item, por pessoa, em CENTAVOS. null = ainda não se sabe. */
+  amountCents: number | null;
+  /** `done` é CONTRATADO; pagamento é o que estes três campos descrevem. */
+  installments: number;
+  paidInstallments: number;
+  /** Vencimento da primeira parcela, "AAAA-MM-DD". */
+  firstDueDate: string | null;
   position: number;
 }
 
@@ -18,9 +23,14 @@ export interface TripDTO {
   dest: string;
   whenText: string;
   year: number;
+  /** Datas exatas como "AAAA-MM-DD", ou null enquanto não se sabe. */
+  startDate: string | null;
+  endDate: string | null;
   status: Status;
-  /** Orçamento estimado por pessoa (R$). O real vem da soma dos `items`. */
-  budget: number | null;
+  /** Orçamento estimado por pessoa, em CENTAVOS. O real vem dos `items`. */
+  budgetCents: number | null;
+  /** Quantas pessoas vão. Os valores são por pessoa; o total é valor × people. */
+  people: number;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +42,7 @@ export interface BoardSummary {
   name: string;
   role: Role;
   tripCount?: number;
+  /** 1 = quadro só seu (solo). Mais que isso = compartilhado. */
   memberCount?: number;
 }
 

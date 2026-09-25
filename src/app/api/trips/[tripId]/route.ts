@@ -23,9 +23,22 @@ export async function PATCH(req: Request, { params }: Params) {
     );
   }
 
+  // Mesma regra da criação: data exata manda no ano. Só recalcula quando a
+  // data de ida veio nesta requisição — um PATCH que só muda o status não
+  // deve mexer no ano.
+  const dados =
+    parsed.data.startDate !== undefined
+      ? {
+          ...parsed.data,
+          year: parsed.data.startDate
+            ? parsed.data.startDate.getUTCFullYear()
+            : parsed.data.year,
+        }
+      : parsed.data;
+
   const updated = await prisma.trip.update({
     where: { id: tripId },
-    data: parsed.data,
+    data: dados,
     include: tripInclude,
   });
   return NextResponse.json({ trip: toTripDTO(updated) });

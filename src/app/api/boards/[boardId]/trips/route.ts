@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, getMembership } from "@/lib/auth-helpers";
 import { tripCreateSchema } from "@/lib/validation";
 import { toTripDTO, tripInclude } from "@/lib/trip-dto";
+import { CHECKLIST_PADRAO } from "@/lib/checklist-defaults";
 
 type Params = { params: Promise<{ boardId: string }> };
 
@@ -40,8 +41,31 @@ export async function POST(req: Request, { params }: Params) {
     );
   }
 
+  // Quantas pessoas vão: se o cliente não disser, assume o tamanho do quadro.
+  // Num quadro solo dá 1; num quadro de casal, 2. É o palpite certo na
+  // esmagadora maioria das vezes, e dá para mudar na própria viagem.
+  const membros = await prisma.boardMember.count({ where: { boardId } });
+  const people = parsed.data.people ?? Math.max(1, membros);
+
+  // Com data exata, o ano vem dela. Deixar os dois independentes permitiria
+  // uma viagem marcada para março de 2027 aparecer na faixa de 2026.
+  const year = parsed.data.startDate
+    ? parsed.data.startDate.getUTCFullYear()
+    : parsed.data.year;
+
+  // Toda viagem nasce com o checklist básico preenchido (sem valores).
+  // Em uma transação junto com a viagem: se a criação dos itens falhar,
+  // não fica uma viagem pela metade.
   const trip = await prisma.trip.create({
-    data: { ...parsed.data, boardId },
+    data: {
+      ...parsed.data,
+      people,
+      year,
+      boardId,
+      items: {
+        create: CHECKLIST_PADRAO.map((label, position) => ({ label, position })),
+      },
+    },
     include: tripInclude,
   });
   return NextResponse.json({ trip: toTripDTO(trip) }, { status: 201 });

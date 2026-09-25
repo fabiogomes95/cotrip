@@ -23,9 +23,22 @@ export async function PATCH(req: Request, { params }: Params) {
     );
   }
 
+  /* Parcelas pagas não podem passar do total de parcelas. A checagem é aqui,
+     e não no schema, porque um PATCH pode trazer só um dos dois campos — o
+     schema sozinho não sabe com que valor o outro vai ficar. */
+  const installments = parsed.data.installments ?? access.item.installments;
+  const pagas = parsed.data.paidInstallments ?? access.item.paidInstallments;
+  const dados = {
+    ...parsed.data,
+    ...(parsed.data.installments !== undefined ||
+    parsed.data.paidInstallments !== undefined
+      ? { paidInstallments: Math.min(Math.max(0, pagas), installments) }
+      : {}),
+  };
+
   const item = await prisma.checklistItem.update({
     where: { id: itemId },
-    data: parsed.data,
+    data: dados,
   });
   return NextResponse.json({ item: toItemDTO(item) });
 }

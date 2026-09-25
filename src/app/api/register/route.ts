@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validation";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  // 5 cadastros por hora por IP. Alto o bastante para uma família inteira
+  // criando conta junto, baixo o bastante para matar script de criação em massa.
+  const limite = await rateLimit(clientKey(req, "register"), 5, 60);
+  if (!limite.ok) {
+    return NextResponse.json(
+      { error: "Muitas tentativas de cadastro. Tente de novo daqui a pouco." },
+      { status: 429 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

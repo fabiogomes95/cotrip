@@ -100,6 +100,19 @@ export async function DELETE(req: Request, { params }: Params) {
   if (targetId === user.id)
     return NextResponse.json({ error: "O dono não pode se remover" }, { status: 400 });
 
-  await prisma.boardMember.deleteMany({ where: { boardId, userId: targetId } });
+  // Dono não expulsa dono. Sem esta trava, dois donos podiam se remover um ao
+  // outro — e quem clicasse primeiro ficava com o quadro, inclusive tirando o
+  // acesso de quem o criou.
+  const alvo = await prisma.boardMember.findUnique({
+    where: { boardId_userId: { boardId, userId: targetId } },
+  });
+  if (!alvo) return NextResponse.json({ error: "Essa pessoa não é membro" }, { status: 404 });
+  if (isOwner(alvo.role))
+    return NextResponse.json(
+      { error: "Não dá para remover outro dono do quadro" },
+      { status: 403 },
+    );
+
+  await prisma.boardMember.delete({ where: { id: alvo.id } });
   return NextResponse.json({ ok: true });
 }
