@@ -220,6 +220,18 @@ a {
   flex: 1;
 }
 
+/* Icone do "Compartilhar". So aparece no celular, onde o rotulo nao cabe. */
+.btn-share .ico {
+  display: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* board switcher */
 .switcher {
   position: relative;
@@ -317,8 +329,12 @@ a {
 
 /* ---------- stats ---------- */
 .stats {
-  display: flex;
-  flex-wrap: wrap;
+  /* Grade em vez de flex-wrap: com flex as caixas ficavam com larguras
+     diferentes conforme o conteudo, e no celular isso virava um degrau feio.
+     Com auto-fit + 1fr elas sempre dividem a linha em partes iguais:
+     4 colunas no desktop, 2 no celular, sem media query. */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin: 20px 0 4px;
 }
@@ -327,7 +343,7 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 11px 15px;
-  min-width: 104px;
+  min-width: 0; /* deixa a grade mandar na largura */
   box-shadow: var(--shadow-sm);
 }
 .stat .num {
@@ -1005,23 +1021,72 @@ a {
     transition: none !important;
   }
 }
-@media (max-width: 480px) {
+/* ============================================================
+   Celular (< 560px)
+
+   O problema que isto resolve: a barra do topo tinha rotulo da marca,
+   nome do quadro, "ao vivo", "Compartilhar", avatar e "Sair" — tudo com
+   largura fixa. Somado, nao cabia em 390px. Como nada podia encolher, o
+   navegador ALARGAVA a pagina inteira (425px numa tela de 390), e ai todo
+   o resto — inclusive o modal — vazava pela direita.
+
+   A regra geral aqui: no celular, cada item da barra ou encolhe, ou some.
+   ============================================================ */
+@media (max-width: 559px) {
   .appbar-in {
     padding: 10px 14px;
     gap: 8px;
   }
+
+  /* A bolinha da marca ja identifica o app; o nome escrito e o primeiro
+     a sair, porque e o que menos informa quando o espaco aperta. */
+  .brand h1 {
+    display: none;
+  }
+
+  /* "ao vivo" e enfeite: a sincronizacao acontece com ou sem o aviso. */
+  .sync-pill {
+    display: none;
+  }
+
+  /* O seletor de quadro passa a ser o elastico da barra: ocupa o que
+     sobrar e corta com reticencias. min-width: 0 e obrigatorio — sem ele
+     um filho flex se recusa a encolher abaixo do proprio conteudo, que
+     era exatamente o que empurrava o "Sair" pra fora da tela. */
+  .switcher {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .switcher select {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Compartilhar vira so o icone. */
+  .btn-share .lbl {
+    display: none;
+  }
+  .btn-share .ico {
+    display: block;
+  }
+  .btn-share {
+    padding: 8px 10px;
+  }
+
   .btn-primary .lbl {
     display: none;
   }
   .btn-primary {
     padding: 9px 12px;
   }
-  .switcher select {
-    max-width: 130px;
-  }
   .user-chip .uname {
     display: none;
   }
+  .btn-signout {
+    padding: 8px 10px;
+  }
+
+  /* Trilha da linha do tempo mais estreita, pra sobrar largura pro cartao. */
   .year {
     grid-template-columns: 22px 1fr;
   }
@@ -1030,5 +1095,26 @@ a {
   }
   .rail .dot {
     left: 2px;
+  }
+
+  /* Chips de filtro um pouco menores: cabem em 2 linhas sem parecer botao
+     de tablet. */
+  .chip {
+    padding: 5px 10px;
+    font-size: 12.5px;
+  }
+
+  /* O botao flutuante "+" fica por cima do conteudo. Sem este respiro no
+     rodape ele tapa o ultimo cartao da lista, que e justamente onde a
+     pessoa para de rolar. */
+  .foot {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Trava de seguranca: se algum dia outro elemento estourar a largura,
+     ele quebra a linha em vez de alargar a pagina toda de novo. */
+  .wrap,
+  .appbar-in {
+    overflow-x: clip;
   }
 }

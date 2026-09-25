@@ -223,12 +223,21 @@ export function BoardApp({
             ao vivo
           </span>
 
+          {/* No celular a barra nao cabe com todos os rotulos: o texto some e
+              fica so o icone. O aria-label garante que o leitor de tela
+              continue anunciando a acao inteira nos dois tamanhos. */}
           <button
-            className="btn"
+            className="btn btn-share"
             onClick={() => setModal({ type: "share" })}
             title="Compartilhar quadro"
+            aria-label="Compartilhar quadro"
           >
-            Compartilhar
+            <svg className="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+              <path d="M2.5 20.5a6.5 6.5 0 0 1 13 0" />
+              <path d="M18 8.5v6M15 11.5h6" />
+            </svg>
+            <span className="lbl">Compartilhar</span>
           </button>
 
           <span className="user-chip">
@@ -238,7 +247,7 @@ export function BoardApp({
           </span>
 
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost btn-signout"
             onClick={() => signOut({ callbackUrl: "/login" })}
           >
             Sair
