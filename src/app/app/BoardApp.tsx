@@ -1301,6 +1301,19 @@ function ShareModal({
     }
   }
 
+  async function sairDoQuadro() {
+    const res = await fetch(`/api/boards/${boardId}/members?userId=${currentUserId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      onToast("Você saiu do quadro");
+      onDeleted(); // mesma saída da exclusão: fecha e volta para o primeiro quadro
+    } else {
+      const d = await res.json().catch(() => ({}));
+      onToast(d.error ?? "Não deu para sair");
+    }
+  }
+
   async function removeMember(userId: string) {
     const res = await fetch(`/api/boards/${boardId}/members?userId=${userId}`, {
       method: "DELETE",
@@ -1411,6 +1424,23 @@ function ShareModal({
           <p style={{ fontSize: 13, color: "var(--ink-faint)" }}>
             Só o dono do quadro pode convidar novas pessoas.
           </p>
+        )}
+
+        {!isOwner && (
+          <div className="zona-perigo">
+            <div className="txt">
+              <b>Sair deste quadro</b>
+              <span>
+                Você deixa de ver as viagens daqui. Quem te convidou pode te
+                trazer de volta depois.
+              </span>
+            </div>
+            <BotaoPerigo
+              label="Sair do quadro"
+              confirmLabel="Sair mesmo?"
+              onConfirm={() => void sairDoQuadro()}
+            />
+          </div>
         )}
 
         {isOwner && (

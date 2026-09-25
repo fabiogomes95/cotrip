@@ -27,6 +27,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
 - **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
 - **Parcelamento e pagamento**: um item do checklist distingue *contratado* de *pago*. Passagem em 10x com 3 pagas mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
+- **Sair do quadro**: quem foi convidado vai embora sozinho, sem depender do dono. (O dono não sai — precisa excluir o quadro antes.)
 - **Acerto de contas** (quadro compartilhado): registre quem bancou cada item e o app calcula quem deve quanto a quem, sugerindo as transferências que zeram tudo.
 - **Quantas pessoas vão** por viagem: os valores continuam por pessoa, e o app calcula o total do grupo. Viagem criada num quadro solo já nasce com 1 pessoa.
 - **Viagens feitas são arquivadas** num bloco "Já rolou" recolhido no fim, com o total gasto — a linha do tempo fica só com o que está por vir.
@@ -185,6 +186,11 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 
 3. Deploy. O `build` roda `prisma migrate deploy` antes do `next build`, então o
    schema é aplicado automaticamente a cada deploy.
+
+**Região.** O `vercel.json` fixa as funções em `gru1` (São Paulo), ao lado do
+banco. Sem isso a Vercel usa `iad1` (Washington) por padrão e cada consulta
+atravessa o continente — medi ~0,6 a 1,6s por requisição contra 0,33s de uma
+página sem banco.
 
 **Por que duas URLs?** O runtime é serverless e abre muitas conexões curtas — daí
 o pooler. Já o `prisma migrate` precisa de uma sessão própria, que o pooler não

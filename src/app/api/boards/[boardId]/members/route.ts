@@ -92,26 +92,49 @@ export async function DELETE(req: Request, { params }: Params) {
   const { boardId } = await params;
   const membership = await getMembership(boardId, user.id);
   if (!membership) return NextResponse.json({ error: "Quadro não encontrado" }, { status: 404 });
-  if (!isOwner(membership.role))
-    return NextResponse.json({ error: "Apenas o dono pode remover membros" }, { status: 403 });
 
   const targetId = new URL(req.url).searchParams.get("userId");
   if (!targetId) return NextResponse.json({ error: "userId ausente" }, { status: 400 });
-  if (targetId === user.id)
-    return NextResponse.json({ error: "O dono não pode se remover" }, { status: 400 });
 
-  // Dono não expulsa dono. Sem esta trava, dois donos podiam se remover um ao
-  // outro — e quem clicasse primeiro ficava com o quadro, inclusive tirando o
-  // acesso de quem o criou.
   const alvo = await prisma.boardMember.findUnique({
     where: { boardId_userId: { boardId, userId: targetId } },
   });
   if (!alvo) return NextResponse.json({ error: "Essa pessoa não é membro" }, { status: 404 });
-  if (isOwner(alvo.role))
-    return NextResponse.json(
-      { error: "Não dá para remover outro dono do quadro" },
-      { status: 403 },
-    );
+
+  /* Dois casos diferentes compartilham esta rota:
+
+     - SAIR: qualquer membro pode ir embora sozinho, sem depender do dono.
+       Não precisa ser dono para isso — o contrário prenderia a pessoa num
+       quadro do qual ela foi convidada.
+     - REMOVER outra pessoa: só o dono, e nunca outro dono. */
+  const saindo = targetId === user.id;
+
+  if (saindo) {
+    if (isOwner(membership.role)) {
+      return NextResponse.json(
+        {
+          error:
+            "O dono não pode sair. Exclua o quadro ou passe a propriedade antes.",
+        },
+        { status: 400 },
+      );
+    }
+  } else {
+    if (!isOwner(membership.role)) {
+      return NextResponse.json(
+        { error: "Apenas o dono pode remover membros" },
+        { status: 403 },
+      );
+    }
+    // Sem esta trava, dois donos podiam se remover um ao outro — e quem
+    // clicasse primeiro ficava com o quadro, tirando o acesso de quem o criou.
+    if (isOwner(alvo.role)) {
+      return NextResponse.json(
+        { error: "Não dá para remover outro dono do quadro" },
+        { status: 403 },
+      );
+    }
+  }
 
   await prisma.boardMember.delete({ where: { id: alvo.id } });
   return NextResponse.json({ ok: true });

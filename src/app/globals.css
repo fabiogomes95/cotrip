@@ -28,9 +28,12 @@
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 18px;
-  --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
-  --font-body: "Figtree", system-ui, -apple-system, sans-serif;
-  --font-serif: "Newsreader", Georgia, serif;
+  /* As variáveis --f-* são geradas pelo next/font no layout raiz. A pilha de
+     fallback continua aqui: se por algum motivo a fonte não carregar, o texto
+     cai em algo parecido em vez de no serif padrão do navegador. */
+  --font-display: var(--f-display), "Figtree", system-ui, sans-serif;
+  --font-body: var(--f-body), system-ui, -apple-system, sans-serif;
+  --font-serif: var(--f-serif), Georgia, serif;
 }
 
 @media (prefers-color-scheme: dark) {
