@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   // Runtime: endpoint com pooling (host termina em "-pooler"), para aguentar
   // o serverless da Vercel sem estourar o limite de conexoes do Postgres.
   url       = env("DATABASE_URL")
@@ -59,19 +59,35 @@ enum TripStatus {
 }
 
 model Trip {
-  id        String     @id @default(cuid())
-  board     Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  id        String          @id @default(cuid())
+  board     Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
   boardId   String
   dest      String
-  whenText  String     @default("") // época em texto livre: "Julho", "Carnaval"...
-  year      Int        @default(0) // 0 = "algum dia" (sem data definida)
-  status    TripStatus @default(IDEIA)
+  whenText  String          @default("") // época em texto livre: "Julho", "Carnaval"...
+  year      Int             @default(0) // 0 = "algum dia" (sem data definida)
+  status    TripStatus      @default(IDEIA)
   budget    Int? // orçamento estimado por pessoa (R$), opcional
-  note      String     @default("")
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  note      String          @default("")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  items     ChecklistItem[]
 
   @@index([boardId])
+}
+
+// Itens do checklist de uma viagem: "Passagem", "Hospedagem"...
+// O budget da Trip e a ESTIMATIVA; a soma dos amounts daqui e o REAL gasto.
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId    String
+  label     String
+  done      Boolean  @default(false)
+  amount    Int? // valor real por pessoa (R$); null = ainda nao se sabe
+  position  Int      @default(0) // ordem de exibicao, definida pelo usuario
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
 }
 
 model Invitation {

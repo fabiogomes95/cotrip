@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, getMembership, isOwner } from "@/lib/auth-helpers";
 import { boardUpdateSchema } from "@/lib/validation";
+import { toTripDTO, tripInclude } from "@/lib/trip-dto";
 
 type Params = { params: Promise<{ boardId: string }> };
 
@@ -16,7 +17,11 @@ export async function GET(_req: Request, { params }: Params) {
 
   const [board, trips, members] = await Promise.all([
     prisma.board.findUnique({ where: { id: boardId } }),
-    prisma.trip.findMany({ where: { boardId }, orderBy: { createdAt: "asc" } }),
+    prisma.trip.findMany({
+      where: { boardId },
+      orderBy: { createdAt: "asc" },
+      include: tripInclude,
+    }),
     prisma.boardMember.findMany({
       where: { boardId },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -29,7 +34,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     board: { id: board.id, name: board.name },
     role: membership.role,
-    trips,
+    trips: trips.map(toTripDTO),
     members: members.map((m) => ({
       userId: m.userId,
       name: m.user.name,

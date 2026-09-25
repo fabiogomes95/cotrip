@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { BoardSummary, MemberDTO, TripDTO, Role } from "@/types";
-import type { Status } from "@/lib/status";
+import { toTripDTO, tripInclude } from "@/lib/trip-dto";
 import { BoardApp } from "./BoardApp";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,11 @@ export default async function AppPage({
   const active = boards.find((b) => b.id === boardParam) ?? boards[0];
 
   const [tripsRaw, membersRaw] = await Promise.all([
-    prisma.trip.findMany({ where: { boardId: active.id }, orderBy: { createdAt: "asc" } }),
+    prisma.trip.findMany({
+      where: { boardId: active.id },
+      orderBy: { createdAt: "asc" },
+      include: tripInclude,
+    }),
     prisma.boardMember.findMany({
       where: { boardId: active.id },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -56,18 +60,7 @@ export default async function AppPage({
     }),
   ]);
 
-  const trips: TripDTO[] = tripsRaw.map((t) => ({
-    id: t.id,
-    boardId: t.boardId,
-    dest: t.dest,
-    whenText: t.whenText,
-    year: t.year,
-    status: t.status as Status,
-    budget: t.budget,
-    note: t.note,
-    createdAt: t.createdAt.toISOString(),
-    updatedAt: t.updatedAt.toISOString(),
-  }));
+  const trips: TripDTO[] = tripsRaw.map(toTripDTO);
 
   const members: MemberDTO[] = membersRaw.map((m) => ({
     userId: m.userId,

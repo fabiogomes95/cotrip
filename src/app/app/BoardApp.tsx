@@ -10,11 +10,36 @@ import {
   type Status,
 } from "@/lib/status";
 import { formatBRL } from "@/lib/format";
-import type { BoardSummary, InviteDTO, MemberDTO, Role, TripDTO } from "@/types";
+import type {
+  BoardSummary,
+  ChecklistItemDTO,
+  InviteDTO,
+  MemberDTO,
+  Role,
+  TripDTO,
+} from "@/types";
 
 const CUR = new Date().getFullYear();
 const BASE_YEARS = [CUR, CUR + 1, CUR + 2, CUR + 3];
 const POLL_MS = 12000;
+
+/* ------------------------------------------------------------------
+   Dinheiro do checklist
+
+   Duas contas diferentes, e a distincao importa:
+   - `budget` da viagem  = o que se ACHA que vai custar (estimativa)
+   - itens marcados      = o que JA saiu do bolso (real)
+
+   So conta item marcado como feito. Um item com preco anotado mas ainda
+   nao marcado e pesquisa de preco, nao gasto.
+   ------------------------------------------------------------------ */
+function gastoReal(items: ChecklistItemDTO[]): number {
+  return items.reduce((s, i) => s + (i.done ? (i.amount ?? 0) : 0), 0);
+}
+
+function feitos(items: ChecklistItemDTO[]): number {
+  return items.filter((i) => i.done).length;
+}
 
 type Modal =
   | { type: "trip"; trip: TripDTO | null; presetYear?: number }
@@ -89,14 +114,22 @@ export function BoardApp({
     return () => clearInterval(id);
   }, [refetchTrips]);
 
+  // O checklist grava direto na API, sem passar pelo "Salvar" do formulário.
+  // Por isso toda saída de modal repuxa as viagens: é o que mantém o resumo
+  // do cartão (feitos, gasto) em dia com o que acabou de ser mexido.
+  const closeModal = useCallback(() => {
+    setModal(null);
+    void refetchTrips();
+  }, [refetchTrips]);
+
   // Fecha modal no ESC
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setModal(null);
+      if (e.key === "Escape") closeModal();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [closeModal]);
 
   // ----- mutations -----
   async function saveTrip(id: string | null, body: Partial<TripDTO>) {
@@ -158,7 +191,10 @@ export function BoardApp({
     const money = trips
       .filter((t) => t.status !== "FEITA")
       .reduce((s, t) => s + (t.budget ?? 0), 0);
-    return { total: trips.length, locked, done, money };
+    // O gasto soma TODAS as viagens, inclusive as já feitas: dinheiro que
+    // saiu não deixa de ter saído porque a viagem acabou.
+    const spent = trips.reduce((s, t) => s + gastoReal(t.items), 0);
+    return { total: trips.length, locked, done, money, spent };
   }, [trips]);
 
   const filtered =
@@ -283,6 +319,10 @@ export function BoardApp({
             <div className="stat">
               <div className="num">{stats.money ? formatBRL(stats.money) : "—"}</div>
               <div className="lab">estimado por pessoa*</div>
+            </div>
+            <div className="stat">
+              <div className="num">{stats.spent ? formatBRL(stats.spent) : "—"}</div>
+              <div className="lab">já gasto por pessoa</div>
             </div>
           </div>
         </section>
@@ -424,7 +464,7 @@ export function BoardApp({
         <TripModal
           trip={modal.trip}
           presetYear={modal.presetYear ?? CUR}
-          onClose={() => setModal(null)}
+          onClose={closeModal}
           onSave={async (id, body) => {
             await saveTrip(id, body);
             toast(id ? "Viagem atualizada" : "Viagem adicionada ✦");
@@ -445,14 +485,14 @@ export function BoardApp({
           isOwner={isOwner}
           initialMembers={members}
           currentUserId={currentUser.id}
-          onClose={() => setModal(null)}
+          onClose={closeModal}
           onToast={toast}
         />
       )}
 
       {modal?.type === "newboard" && (
         <NewBoardModal
-          onClose={() => setModal(null)}
+          onClose={closeModal}
           onCreated={(id) => {
             setModal(null);
             router.push(`/app?board=${id}`);
@@ -566,6 +606,7 @@ function TripCard({
         </div>
         <h3 className="dest">{trip.dest || "Sem nome"}</h3>
         {trip.note && <p className="note">{trip.note}</p>}
+        {trip.items.length > 0 && <ChecklistResumo trip={trip} />}
         <div className="trip-foot">
           {trip.budget && trip.budget > 0 ? (
             <span className="budget">
@@ -729,6 +770,21 @@ function TripModal({
             placeholder="o que fazer, onde ficar, com quem, links…"
           />
         </div>
+
+        {/* O checklist tem ids próprios no banco, então precisa da viagem já
+            criada para pendurar os itens. Em viagem nova ele aparece como
+            aviso em vez de sumir: assim a pessoa sabe que existe. */}
+        {trip ? (
+          <Checklist tripId={trip.id} initial={trip.items} budget={trip.budget} />
+        ) : (
+          <div className="field">
+            <label>Checklist</label>
+            <p className="check-vazio">
+              Salve a viagem e o checklist abre aqui — aí você lança passagem,
+              hospedagem e os valores reais de cada um.
+            </p>
+          </div>
+        )}
 
         <div className="sheet-actions">
           {trip && (
@@ -995,6 +1051,305 @@ function NewBoardModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/* ============================================================
+   Checklist da viagem
+
+   Diferente do resto do formulário, o checklist grava direto na API a cada
+   mexida, sem esperar o "Salvar". Dois motivos: os itens são registros
+   próprios no banco (têm id), e marcar "hospedagem: ok" é o tipo de gesto
+   que a pessoa faz de passagem, sem querer preencher um formulário inteiro.
+
+   Cuidado ao mexer: isto vive DENTRO do <form> do TripModal. Não pode haver
+   <form> aninhado, e todo <button> precisa de type="button" — sem isso o
+   clique dispara o submit da viagem.
+   ============================================================ */
+function Checklist({
+  tripId,
+  initial,
+  budget,
+}: {
+  tripId: string;
+  initial: ChecklistItemDTO[];
+  budget: number | null;
+}) {
+  const [items, setItems] = useState<ChecklistItemDTO[]>(initial);
+  const [novo, setNovo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  const ok = feitos(items);
+  const gasto = gastoReal(items);
+
+  async function api<T>(url: string, init: RequestInit): Promise<T> {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Não deu para salvar");
+    return data as T;
+  }
+
+  async function adicionar() {
+    const label = novo.trim();
+    if (!label || ocupado) return;
+    setOcupado(true);
+    setErro(null);
+    try {
+      const { item } = await api<{ item: ChecklistItemDTO }>(
+        `/api/trips/${tripId}/items`,
+        { method: "POST", body: JSON.stringify({ label }) },
+      );
+      setItems((prev) => [...prev, item]);
+      setNovo("");
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não deu para adicionar");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  // Otimista: a tela muda na hora e volta ao estado anterior se a API recusar.
+  // Guardo `antes` em vez de tentar desfazer o patch — é à prova de cliques
+  // rápidos em sequência.
+  async function atualizar(id: string, patch: Partial<ChecklistItemDTO>) {
+    const antes = items;
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setErro(null);
+    try {
+      await api(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+    } catch (e) {
+      setItems(antes);
+      setErro(e instanceof Error ? e.message : "Não deu para salvar");
+    }
+  }
+
+  async function remover(id: string) {
+    const antes = items;
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setErro(null);
+    try {
+      await api(`/api/items/${id}`, { method: "DELETE" });
+    } catch {
+      setItems(antes);
+      setErro("Não deu para excluir");
+    }
+  }
+
+  // Comparação com a estimativa — o ponto da funcionalidade toda.
+  let veredito: { txt: string; acima: boolean } | null = null;
+  if (budget && budget > 0 && gasto > 0) {
+    const dif = gasto - budget;
+    veredito =
+      dif > 0
+        ? { txt: `${formatBRL(dif)} acima do estimado`, acima: true }
+        : { txt: `${formatBRL(-dif) === "—" ? "no ponto" : `${formatBRL(-dif)} abaixo`}`, acima: false };
+  }
+
+  return (
+    <div className="field">
+      <label>Checklist · valores reais</label>
+
+      {items.length > 0 && (
+        <div className="check-lista">
+          {items.map((item) => (
+            <ChecklistLinha
+              key={item.id}
+              item={item}
+              onToggle={() => atualizar(item.id, { done: !item.done })}
+              onCommit={(patch) => atualizar(item.id, patch)}
+              onRemove={() => remover(item.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="check-novo">
+        <input
+          type="text"
+          value={novo}
+          onChange={(e) => setNovo(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter aqui adiciona o item. O preventDefault é essencial:
+            // sem ele o Enter submeteria o formulário da viagem inteira.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void adicionar();
+            }
+          }}
+          placeholder="Passagem, hospedagem, seguro…"
+          autoComplete="off"
+          aria-label="Novo item do checklist"
+        />
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void adicionar()}
+          disabled={ocupado || !novo.trim()}
+        >
+          Adicionar
+        </button>
+      </div>
+
+      {erro && <p className="check-erro">{erro}</p>}
+
+      {items.length > 0 && (
+        <div className="check-soma">
+          <span>
+            {ok} de {items.length} {items.length === 1 ? "feito" : "feitos"}
+          </span>
+          <span className="grow" />
+          <span>
+            {gasto > 0 ? (
+              <>
+                <b>{formatBRL(gasto)}</b> gastos
+                {budget && budget > 0 ? ` de ${formatBRL(budget)}` : ""}
+              </>
+            ) : (
+              "nada lançado ainda"
+            )}
+          </span>
+        </div>
+      )}
+
+      {veredito && (
+        <p className={`check-veredito${veredito.acima ? " acima" : ""}`}>{veredito.txt}</p>
+      )}
+    </div>
+  );
+}
+
+/* Uma linha do checklist. O rascunho de texto e valor fica aqui, local, e só
+   sobe para a API no blur (ou no Enter) — senão seria uma requisição por
+   tecla digitada. */
+function ChecklistLinha({
+  item,
+  onToggle,
+  onCommit,
+  onRemove,
+}: {
+  item: ChecklistItemDTO;
+  onToggle: () => void;
+  onCommit: (patch: Partial<ChecklistItemDTO>) => void;
+  onRemove: () => void;
+}) {
+  const [label, setLabel] = useState(item.label);
+  const [valor, setValor] = useState(item.amount != null ? String(item.amount) : "");
+
+  // Se o item mudar por fora (um rollback de erro, por exemplo), o rascunho
+  // acompanha em vez de ficar mostrando algo que não foi salvo.
+  useEffect(() => setLabel(item.label), [item.label]);
+  useEffect(() => setValor(item.amount != null ? String(item.amount) : ""), [item.amount]);
+
+  function gravarLabel() {
+    const v = label.trim();
+    if (!v) {
+      setLabel(item.label); // apagar tudo não vira item sem nome: desfaz
+      return;
+    }
+    if (v !== item.label) onCommit({ label: v });
+  }
+
+  function gravarValor() {
+    const t = valor.trim();
+    const n = t === "" ? null : Math.max(0, Math.round(Number(t) || 0));
+    if (n !== item.amount) onCommit({ amount: n });
+  }
+
+  return (
+    <div className={`check-linha${item.done ? " feito" : ""}`}>
+      <button
+        type="button"
+        className="check-box"
+        role="checkbox"
+        aria-checked={item.done}
+        aria-label={item.label}
+        onClick={onToggle}
+      >
+        <span aria-hidden="true">{item.done ? "✓" : ""}</span>
+      </button>
+
+      <input
+        className="check-txt"
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        onBlur={gravarLabel}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        autoComplete="off"
+        aria-label={`Nome do item ${item.label}`}
+      />
+
+      <span className="check-cifrao">R$</span>
+      <input
+        className="check-val"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        step={50}
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onBlur={gravarValor}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        placeholder="—"
+        aria-label={`Valor real de ${item.label}`}
+      />
+
+      <button
+        type="button"
+        className="check-del"
+        onClick={onRemove}
+        aria-label={`Excluir ${item.label}`}
+        title="Excluir item"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+/* Resumo do checklist no cartão: barra de progresso + quanto já saiu. */
+function ChecklistResumo({ trip }: { trip: TripDTO }) {
+  const total = trip.items.length;
+  const ok = feitos(trip.items);
+  const gasto = gastoReal(trip.items);
+  const pct = total ? Math.round((ok / total) * 100) : 0;
+
+  return (
+    <div className="check-resumo">
+      <span
+        className="barra"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={ok}
+        aria-label={`${ok} de ${total} itens do checklist concluídos`}
+      >
+        <span className="fill" style={{ width: `${pct}%` }} />
+      </span>
+      <span className="txt">
+        {ok}/{total}
+        {gasto > 0 && (
+          <>
+            {" · "}
+            <b>{formatBRL(gasto)}</b>
+          </>
+        )}
+      </span>
     </div>
   );
 }

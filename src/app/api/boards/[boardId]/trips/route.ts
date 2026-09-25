@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, getMembership } from "@/lib/auth-helpers";
 import { tripCreateSchema } from "@/lib/validation";
+import { toTripDTO, tripInclude } from "@/lib/trip-dto";
 
 type Params = { params: Promise<{ boardId: string }> };
 
@@ -17,8 +18,9 @@ export async function GET(_req: Request, { params }: Params) {
   const trips = await prisma.trip.findMany({
     where: { boardId },
     orderBy: { createdAt: "asc" },
+    include: tripInclude,
   });
-  return NextResponse.json({ trips });
+  return NextResponse.json({ trips: trips.map(toTripDTO) });
 }
 
 // POST /api/boards/:id/trips — cria viagem.
@@ -40,6 +42,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const trip = await prisma.trip.create({
     data: { ...parsed.data, boardId },
+    include: tripInclude,
   });
-  return NextResponse.json({ trip }, { status: 201 });
+  return NextResponse.json({ trip: toTripDTO(trip) }, { status: 201 });
 }

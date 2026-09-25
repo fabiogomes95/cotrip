@@ -32,6 +32,9 @@ async function main() {
     },
   });
 
+  // `items` = checklist da viagem. O `amount` de cada item e o valor REAL;
+  // o `budget` da viagem e a estimativa. A graca da demo e mostrar as duas
+  // coisas divergindo: Noronha passou do orcado, Jeri ainda esta abaixo.
   const trips: Array<{
     dest: string;
     whenText: string;
@@ -39,17 +42,44 @@ async function main() {
     status: TripStatus;
     budget: number | null;
     note: string;
+    items?: Array<{ label: string; done: boolean; amount: number | null }>;
   }> = [
-    { dest: "Fernando de Noronha", whenText: "Novembro", year: YEAR, status: "RESERVADO", budget: 4200, note: "Mergulho na Baía do Sancho, trilha do Atalaia. Passagem já emitida." },
-    { dest: "Jericoacoara", whenText: "Setembro", year: YEAR, status: "PLANEJANDO", budget: 1500, note: "Buggy nas dunas, pôr do sol na Duna do Pôr do Sol, rede no mar." },
+    {
+      dest: "Fernando de Noronha", whenText: "Novembro", year: YEAR, status: "RESERVADO", budget: 4200,
+      note: "Mergulho na Baía do Sancho, trilha do Atalaia. Passagem já emitida.",
+      items: [
+        { label: "Passagem aérea", done: true, amount: 2180 },
+        { label: "Pousada (5 noites)", done: true, amount: 1650 },
+        { label: "Taxa de preservação + parque", done: true, amount: 520 },
+        { label: "Mergulho batismo", done: false, amount: 380 },
+        { label: "Aluguel de buggy", done: false, amount: null },
+      ],
+    },
+    {
+      dest: "Jericoacoara", whenText: "Setembro", year: YEAR, status: "PLANEJANDO", budget: 1500,
+      note: "Buggy nas dunas, pôr do sol na Duna do Pôr do Sol, rede no mar.",
+      items: [
+        { label: "Passagem + transfer", done: true, amount: 740 },
+        { label: "Pousada", done: false, amount: 520 },
+        { label: "Passeio de buggy", done: false, amount: null },
+      ],
+    },
     { dest: "Buenos Aires", whenText: "Abril", year: YEAR + 1, status: "IDEIA", budget: 3500, note: "Tango em San Telmo, parrilla, feira de Recoleta." },
     { dest: "Chapada Diamantina", whenText: "Julho", year: YEAR + 1, status: "IDEIA", budget: 2200, note: "Cachoeira da Fumaça, Poço Azul, Vale do Pati." },
     { dest: "Lisboa & Porto", whenText: "Maio", year: YEAR + 2, status: "IDEIA", budget: 9000, note: "Duas semanas, comboio entre as cidades, Sintra num bate-volta." },
     { dest: "Japão", whenText: "Temporada das cerejeiras", year: 0, status: "IDEIA", budget: 15000, note: "O sonho antigo. Tóquio, Kyoto, talvez Osaka." },
   ];
 
-  for (const t of trips) {
-    await prisma.trip.create({ data: { ...t, boardId: board.id } });
+  for (const { items, ...t } of trips) {
+    await prisma.trip.create({
+      data: {
+        ...t,
+        boardId: board.id,
+        items: items
+          ? { create: items.map((i, position) => ({ ...i, position })) }
+          : undefined,
+      },
+    });
   }
 
   console.log("Seed pronto! Login demo: demo@cotrip.app / demo1234");

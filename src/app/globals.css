@@ -1022,6 +1022,184 @@ a {
   }
 }
 /* ============================================================
+   Checklist da viagem
+   ============================================================ */
+.check-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+/* Grade, não flex: as colunas precisam se alinhar entre as linhas, senão
+   cada valor cai numa posição diferente e a coluna de dinheiro fica torta. */
+.check-linha {
+  display: grid;
+  grid-template-columns: 24px 1fr auto 74px 26px;
+  align-items: center;
+  gap: 8px;
+}
+
+.check-box {
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--surface);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.check-linha.feito .check-box {
+  background: var(--st-reserv);
+  border-color: var(--st-reserv);
+  color: #fff;
+}
+.check-box:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Os campos herdam a moldura de `.field input` de propósito: ficam com a
+   mesma cara dos outros campos do formulário, o que deixa óbvio que dá para
+   editar o nome e o valor ali mesmo. Aqui só encolho padding e fonte — são
+   várias linhas empilhadas, e o tamanho cheio deixaria o bloco alto demais.
+
+   Os seletores precisam de `.check-linha` na frente: `.field input` tem
+   especificidade (0,1,1) e venceria um `.check-txt` sozinho (0,1,0). */
+.check-linha .check-txt,
+.check-linha .check-val {
+  padding: 7px 9px;
+  font-size: 14px;
+  min-width: 0;
+}
+.check-linha.feito .check-txt {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+.check-linha .check-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  /* Some com as setinhas do input number: ocupam largura e ninguém clica. */
+  -moz-appearance: textfield;
+}
+.check-linha .check-val::-webkit-outer-spin-button,
+.check-linha .check-val::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.check-cifrao {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.check-del {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  border-radius: 6px;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.check-del:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.check-novo {
+  display: flex;
+  gap: 8px;
+}
+.check-novo input {
+  flex: 1;
+  min-width: 0;
+}
+
+.check-erro {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.check-soma {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.check-soma .grow {
+  flex: 1;
+}
+.check-soma b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.check-veredito {
+  margin-top: 5px;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--st-reserv);
+}
+.check-veredito.acima {
+  color: var(--danger);
+}
+
+.check-vazio {
+  font-size: 13px;
+  color: var(--ink-faint);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ---- resumo do checklist no cartão da viagem ---- */
+.check-resumo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.check-resumo .barra {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.check-resumo .fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--st-reserv);
+  transition: width 0.3s ease;
+}
+.check-resumo .txt {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.check-resumo .txt b {
+  color: var(--ink-soft);
+}
+
+/* ============================================================
    Celular (< 560px)
 
    O problema que isto resolve: a barra do topo tinha rotulo da marca,
@@ -1102,6 +1280,13 @@ a {
   .chip {
     padding: 5px 10px;
     font-size: 12.5px;
+  }
+
+  /* Linha do checklist: a coluna do valor encolhe para sobrar largura ao
+     nome do item, que e o que varia de tamanho. */
+  .check-linha {
+    grid-template-columns: 24px 1fr auto 62px 24px;
+    gap: 6px;
   }
 
   /* O botao flutuante "+" fica por cima do conteudo. Sem este respiro no

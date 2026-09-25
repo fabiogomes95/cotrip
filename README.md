@@ -25,6 +25,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Checklist com controle financeiro**: cada viagem tem itens (passagem, hospedagem, seguro…) que se marcam como feitos e recebem o **valor real** pago. O orçamento da viagem é a *estimativa*; a soma dos itens marcados é o *gasto*. O app mostra os dois lado a lado e avisa quando passou do previsto.
 - **Tema claro/escuro** automático.
 - **Sincronização leve**: o quadro atualiza sozinho (polling) para refletir edições de quem está junto.
 
@@ -48,6 +49,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - `Board` — um quadro de viagens.
 - `BoardMember` — vínculo usuário↔quadro com papel (`OWNER` / `EDITOR`).
 - `Trip` — uma viagem, pertence a um quadro.
+- `ChecklistItem` — um item do checklist de uma viagem (rótulo, feito ou não, valor real).
 - `Invitation` — convite pendente por email (aceito no cadastro).
 
 O isolamento multi-tenant é garantido em cada rota: nenhuma viagem é lida ou escrita sem antes checar que o usuário é membro do quadro dono dela (`src/lib/auth-helpers.ts`).
@@ -135,6 +137,10 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 | `POST` | `/api/boards/:id/trips` | Cria viagem |
 | `PATCH` | `/api/trips/:id` | Atualiza viagem |
 | `DELETE` | `/api/trips/:id` | Exclui viagem |
+| `GET` | `/api/trips/:id/items` | Itens do checklist |
+| `POST` | `/api/trips/:id/items` | Adiciona item ao checklist |
+| `PATCH` | `/api/items/:id` | Marca/renomeia/lança o valor de um item |
+| `DELETE` | `/api/items/:id` | Remove um item |
 
 ---
 
@@ -170,7 +176,6 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ## 🗺️ Próximos passos (ideias)
 
 - Tempo real de verdade (WebSocket/SSE) no lugar do polling.
-- Checklist por viagem (passagem, hospedagem, seguro).
 - Múltiplas moedas (viagens internacionais).
 - Anexos e links por viagem.
 - Papéis mais finos (visualizador × editor).

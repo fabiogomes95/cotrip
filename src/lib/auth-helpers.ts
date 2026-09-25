@@ -22,3 +22,30 @@ export async function getMembership(boardId: string, userId: string) {
 export function isOwner(role: Role | undefined | null) {
   return role === "OWNER";
 }
+
+/**
+ * Resolve o acesso a uma viagem: carrega a viagem e confere que o usuário é
+ * membro do quadro dela. Retorna null nos dois casos (viagem inexistente ou
+ * quadro alheio) de propósito — quem chama responde 404 para ambos, então
+ * ninguém descobre se um id existe em quadro que não é seu.
+ */
+export async function getTripAccess(tripId: string, userId: string) {
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+  if (!trip) return null;
+
+  const membership = await getMembership(trip.boardId, userId);
+  if (!membership) return null;
+
+  return { trip, membership };
+}
+
+/** Mesma ideia, partindo de um item do checklist. */
+export async function getItemAccess(itemId: string, userId: string) {
+  const item = await prisma.checklistItem.findUnique({ where: { id: itemId } });
+  if (!item) return null;
+
+  const access = await getTripAccess(item.tripId, userId);
+  if (!access) return null;
+
+  return { item, ...access };
+}
