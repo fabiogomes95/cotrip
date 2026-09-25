@@ -31,3 +31,9 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# vercel
+.vercel
+
+# o .env.example e versionado de proposito (documenta as variaveis)
+!.env.example
