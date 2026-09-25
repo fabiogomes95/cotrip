@@ -12,6 +12,11 @@ import bcrypt from "bcryptjs";
 export const DEMO_EMAIL = "demo@cotrip.app";
 export const DEMO_SENHA = "demo1234";
 export const DEMO_QUADRO = "Nossas Viagens";
+/* Um segundo quadro, este compartilhado, para a demo mostrar os dois modos:
+   o espaço solo e o dividido com alguém — inclusive o acerto de contas, que
+   só existe quando tem mais de uma pessoa. */
+export const DEMO_QUADRO_2 = "Chile com a Duda";
+const DUDA_EMAIL = "duda@cotrip.app";
 
 const ANO = () => new Date().getFullYear();
 
@@ -91,6 +96,12 @@ export async function semearDemo(
     create: { email: DEMO_EMAIL, name: "Viajante Demo", passwordHash },
   });
 
+  const duda = await prisma.user.upsert({
+    where: { email: DUDA_EMAIL },
+    update: {},
+    create: { email: DUDA_EMAIL, name: "Duda", passwordHash },
+  });
+
   const existente = await prisma.board.findFirst({
     where: { name: DEMO_QUADRO, members: { some: { userId: user.id } } },
   });
@@ -99,6 +110,9 @@ export async function semearDemo(
     if (!recriar) return { criou: false };
     // Cascata apaga viagens e itens junto.
     await prisma.board.delete({ where: { id: existente.id } });
+  }
+  if (recriar) {
+    await prisma.board.deleteMany({ where: { name: DEMO_QUADRO_2 } });
   }
 
   const board = await prisma.board.create({
@@ -121,5 +135,68 @@ export async function semearDemo(
     });
   }
 
+  await semearQuadroCompartilhado(prisma, user.id, duda.id);
+
   return { criou: true };
+}
+
+/**
+ * O quadro de duas pessoas. Os pagamentos são desiguais de propósito: a demo
+ * precisa mostrar o acerto de contas com alguém devendo a alguém, que é o
+ * único estado em que a funcionalidade diz alguma coisa.
+ */
+async function semearQuadroCompartilhado(
+  prisma: PrismaClient,
+  demoId: string,
+  dudaId: string,
+) {
+  const ja = await prisma.board.findFirst({ where: { name: DEMO_QUADRO_2 } });
+  if (ja) return;
+
+  const Y = new Date().getFullYear();
+  const board = await prisma.board.create({
+    data: {
+      name: DEMO_QUADRO_2,
+      members: {
+        create: [
+          { userId: demoId, role: "OWNER" },
+          { userId: dudaId, role: "EDITOR" },
+        ],
+      },
+    },
+  });
+
+  await prisma.trip.create({
+    data: {
+      boardId: board.id,
+      dest: "Santiago e Valparaíso",
+      whenText: "Julho",
+      year: Y + 1,
+      startDate: new Date(Date.UTC(Y + 1, 6, 4)),
+      endDate: new Date(Date.UTC(Y + 1, 6, 12)),
+      status: "PLANEJANDO",
+      budgetCents: 5200_00,
+      people: 2,
+      note: "Vinhedos no Valle de Casablanca, cerros de Valparaíso, neve em Farellones.",
+      items: {
+        create: [
+          // A demo bancou a passagem inteira, em 10x
+          {
+            label: "Passagem", position: 0, done: true, amountCents: 3100_00,
+            installments: 10, paidInstallments: 3,
+            firstDueDate: new Date(Date.UTC(Y, 8, 15)), paidById: demoId,
+          },
+          // A Duda bancou a hospedagem à vista
+          {
+            label: "Hospedagem", position: 1, done: true, amountCents: 1400_00,
+            installments: 1, paidInstallments: 1, paidById: dudaId,
+          },
+          { label: "Seguro viagem", position: 2, done: true, amountCents: 180_00,
+            installments: 1, paidInstallments: 1, paidById: demoId },
+          { label: "Passeio aos vinhedos", position: 3, done: false, amountCents: 320_00 },
+          { label: "Transporte no local", position: 4, done: false, amountCents: null },
+        ],
+      },
+    },
+  });
 }

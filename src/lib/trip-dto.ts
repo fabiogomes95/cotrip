@@ -24,6 +24,7 @@ export function toItemDTO(i: ChecklistItem): ChecklistItemDTO {
     installments: i.installments,
     paidInstallments: i.paidInstallments,
     firstDueDate: i.firstDueDate ? paraISO(i.firstDueDate) : null,
+    paidById: i.paidById,
     position: i.position,
   };
 }

@@ -25,6 +25,9 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
+- **Parcelamento e pagamento**: um item do checklist distingue *contratado* de *pago*. Passagem em 10x com 3 pagas mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
+- **Acerto de contas** (quadro compartilhado): registre quem bancou cada item e o app calcula quem deve quanto a quem, sugerindo as transferências que zeram tudo.
 - **Quantas pessoas vão** por viagem: os valores continuam por pessoa, e o app calcula o total do grupo. Viagem criada num quadro solo já nasce com 1 pessoa.
 - **Viagens feitas são arquivadas** num bloco "Já rolou" recolhido no fim, com o total gasto — a linha do tempo fica só com o que está por vir.
 - **Checklist com controle financeiro**: cada viagem tem itens (passagem, hospedagem, seguro…) que se marcam como feitos e recebem o **valor real** pago. O orçamento da viagem é a *estimativa*; a soma dos itens marcados é o *gasto*. O app mostra os dois lado a lado e avisa quando passou do previsto.
@@ -51,7 +54,14 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - `Board` — um quadro de viagens.
 - `BoardMember` — vínculo usuário↔quadro com papel (`OWNER` / `EDITOR`).
 - `Trip` — uma viagem, pertence a um quadro.
-- `ChecklistItem` — um item do checklist de uma viagem (rótulo, feito ou não, valor real).
+- `ChecklistItem` — um item do checklist (rótulo, contratado ou não, valor total, parcelamento, quem pagou).
+- `RateHit` — registro de tentativa, para o limite de taxa no cadastro.
+
+> **`done` significa CONTRATADO, não pago.** São coisas diferentes: passagem
+> em 6x está contratada no primeiro dia e paga só no sexto mês. O parcelamento
+> é modelado com três escalares no item (`installments`, `paidInstallments`,
+> `firstDueDate`) em vez de uma tabela de parcelas — tudo que o app precisa é
+> derivável deles.
 
 > **Dinheiro é sempre guardado em centavos**, como inteiro (`budgetCents`,
 > `amountCents`). O nome do campo carrega a unidade de propósito: ponto
@@ -191,14 +201,21 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ```bash
 npm run typecheck   # tipos
 npm run lint        # ESLint
-npm test            # 46 testes
+npm test            # 106 testes
 ```
 
-Os testes cobrem o que quebraria em silêncio: as contas de dinheiro
-(`src/lib/format.ts`, `src/lib/checklist.ts`), os schemas de validação e —
-o mais importante — o **isolamento entre quadros** (`src/lib/access.test.ts`),
-que roda contra um banco de verdade e confirma que ninguém alcança viagem ou
-item de um quadro do qual não é membro.
+Os testes cobrem o que quebraria em silêncio:
+
+- **dinheiro** — conversão, formatação e a ida-e-volta pelo campo de edição
+  (`format`), as somas de contratado/pago/a pagar (`checklist`), as contas de
+  parcela incluindo a invariante *pago + falta = total* (`parcelas`)
+- **datas** — fuso, horário de verão, virada de ano e fim de mês (`datas`)
+- **acerto de contas** — as invariantes de que os saldos somam zero e de que
+  as transferências sugeridas zeram todo mundo (`acerto`)
+- **validação** — os schemas, incluindo a regressão do `null` virando `0`
+- **isolamento entre quadros** (`access`) — o mais importante: roda contra um
+  banco de verdade e confirma que ninguém alcança viagem ou item de um quadro
+  do qual não é membro
 
 ---
 

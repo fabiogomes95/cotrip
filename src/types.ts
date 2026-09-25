@@ -14,6 +14,8 @@ export interface ChecklistItemDTO {
   paidInstallments: number;
   /** Vencimento da primeira parcela, "AAAA-MM-DD". */
   firstDueDate: string | null;
+  /** Quem bancou o item, em quadro compartilhado. */
+  paidById: string | null;
   position: number;
 }
 

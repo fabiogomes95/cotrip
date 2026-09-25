@@ -30,6 +30,7 @@ import {
   proximoVencimento,
   valorParcela,
 } from "@/lib/parcelas";
+import { calcularSaldos, sugerirPagamentos } from "@/lib/acerto";
 import type {
   BoardSummary,
   ChecklistItemDTO,
@@ -617,6 +618,7 @@ export function BoardApp({
           trip={modal.trip}
           presetYear={modal.presetYear ?? CUR}
           defaultPeople={members.length}
+          membros={members}
           onClose={closeModal}
           onSave={async (id, body) => {
             await saveTrip(id, body);
@@ -905,6 +907,7 @@ function TripModal({
   trip,
   presetYear,
   defaultPeople,
+  membros,
   onClose,
   onSave,
   onDelete,
@@ -913,6 +916,7 @@ function TripModal({
   presetYear: number;
   /** Quantas pessoas a viagem nova assume: o tamanho do quadro. */
   defaultPeople: number;
+  membros: MemberDTO[];
   onClose: () => void;
   onSave: (id: string | null, body: Partial<TripDTO>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -1137,6 +1141,8 @@ function TripModal({
             tripId={trip.id}
             initial={trip.items}
             budgetCents={trip.budgetCents}
+            membros={membros}
+            people={Math.max(1, Number(people) || 1)}
           />
         ) : (
           <div className="field">
@@ -1562,11 +1568,18 @@ function Checklist({
   tripId,
   initial,
   budgetCents,
+  membros,
+  people,
 }: {
   tripId: string;
   initial: ChecklistItemDTO[];
   budgetCents: number | null;
+  membros: MemberDTO[];
+  people: number;
 }) {
+  // Acerto de contas só existe em quadro com mais de uma pessoa: sozinho,
+  // você não deve nada a ninguém.
+  const compartilhado = membros.length > 1;
   const [items, setItems] = useState<ChecklistItemDTO[]>(initial);
   const [novo, setNovo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -1656,6 +1669,7 @@ function Checklist({
             <ChecklistLinha
               key={item.id}
               item={item}
+              membros={compartilhado ? membros : []}
               onToggle={() => atualizar(item.id, { done: !item.done })}
               onCommit={(patch) => atualizar(item.id, patch)}
               onRemove={() => remover(item.id)}
@@ -1732,6 +1746,10 @@ function Checklist({
       {veredito && (
         <p className={`check-veredito${veredito.acima ? " acima" : ""}`}>{veredito.txt}</p>
       )}
+
+      {compartilhado && pago > 0 && (
+        <Acerto items={items} membros={membros} people={people} />
+      )}
     </div>
   );
 }
@@ -1741,11 +1759,14 @@ function Checklist({
    tecla digitada. */
 function ChecklistLinha({
   item,
+  membros,
   onToggle,
   onCommit,
   onRemove,
 }: {
   item: ChecklistItemDTO;
+  /** Vazio em quadro solo: aí não existe "quem pagou". */
+  membros: MemberDTO[];
   onToggle: () => void;
   onCommit: (patch: Partial<ChecklistItemDTO>) => void;
   onRemove: () => void;
@@ -1859,7 +1880,7 @@ function ChecklistLinha({
           </button>
 
           {abrirPag && (
-            <PainelPagamento item={item} onCommit={onCommit} />
+            <PainelPagamento item={item} membros={membros} onCommit={onCommit} />
           )}
         </>
       )}
@@ -1897,9 +1918,11 @@ function resumoPagamento(item: ChecklistItemDTO): string {
 /** Controles de parcelamento de um item. */
 function PainelPagamento({
   item,
+  membros,
   onCommit,
 }: {
   item: ChecklistItemDTO;
+  membros: MemberDTO[];
   onCommit: (patch: Partial<ChecklistItemDTO>) => void;
 }) {
   const pagas = item.paidInstallments;
@@ -1958,6 +1981,24 @@ function PainelPagamento({
           onChange={(e) => onCommit({ firstDueDate: e.target.value || null })}
         />
       </div>
+
+      {membros.length > 1 && (
+        <div className="linha">
+          <label htmlFor={`p-q-${item.id}`}>Quem pagou</label>
+          <select
+            id={`p-q-${item.id}`}
+            value={item.paidById ?? ""}
+            onChange={(e) => onCommit({ paidById: e.target.value || null })}
+          >
+            <option value="">—</option>
+            {membros.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <p className="resumo">
         <b>{formatBRL(pagoCents(item))}</b> pagos ·{" "}
@@ -2127,5 +2168,63 @@ function Arquivo({
         })}
       </ul>
     </details>
+  );
+}
+
+/* ============================================================
+   Acerto de contas
+
+   Aparece só em quadro compartilhado e só depois que alguém pagou alguma
+   coisa. Mostra o que cada um desembolsou, o que caberia a cada um, e
+   sugere as transferências que zeram tudo.
+   ============================================================ */
+function Acerto({
+  items,
+  membros,
+  people,
+}: {
+  items: ChecklistItemDTO[];
+  membros: MemberDTO[];
+  people: number;
+}) {
+  const saldos = calcularSaldos(items, membros, people);
+  const transferencias = sugerirPagamentos(saldos);
+
+  return (
+    <div className="acerto">
+      <div className="acerto-tit">Acerto de contas</div>
+
+      <ul className="acerto-lista">
+        {saldos.map((s) => (
+          <li key={s.userId}>
+            <span className="nome">{s.name}</span>
+            <span className="valores">
+              pagou {formatBRL(s.desembolsou)} · parte {formatBRL(s.parte)}
+            </span>
+            <span
+              className={`saldo${s.saldo > 0 ? " recebe" : s.saldo < 0 ? " deve" : ""}`}
+            >
+              {s.saldo === 0
+                ? "quite"
+                : s.saldo > 0
+                  ? `+${formatBRL(s.saldo)}`
+                  : `−${formatBRL(-s.saldo)}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {transferencias.length > 0 ? (
+        <ul className="acerto-transf">
+          {transferencias.map((t, i) => (
+            <li key={i}>
+              <b>{t.de}</b> paga {formatBRL(t.valor)} para <b>{t.para}</b>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="acerto-ok">Ninguém deve nada a ninguém ✦</p>
+      )}
+    </div>
   );
 }

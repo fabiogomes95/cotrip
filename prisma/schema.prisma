@@ -16,12 +16,13 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
+  id           String          @id @default(cuid())
+  email        String          @unique
   name         String
   passwordHash String
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime        @default(now())
   memberships  BoardMember[]
+  paidItems    ChecklistItem[]
 }
 
 model Board {
@@ -110,10 +111,19 @@ model ChecklistItem {
   installments     Int       @default(1) // em quantas vezes
   paidInstallments Int       @default(0) // quantas ja foram pagas
   firstDueDate     DateTime? @db.Date // vencimento da primeira parcela
-  position         Int       @default(0) // ordem de exibicao, definida pelo usuario
-  createdAt        DateTime  @default(now())
+
+  /**
+   * Quem bancou este item, em quadro compartilhado. onDelete: SetNull porque
+   * a despesa continua existindo se a pessoa sair do quadro — some só o
+   * crédito dela, e o item nao pode sumir junto.
+   */
+  paidBy    User?    @relation(fields: [paidById], references: [id], onDelete: SetNull)
+  paidById  String?
+  position  Int      @default(0) // ordem de exibicao, definida pelo usuario
+  createdAt DateTime @default(now())
 
   @@index([tripId])
+  @@index([paidById])
 }
 
 // Uma tentativa registrada para limite de taxa (ver src/lib/rate-limit.ts).

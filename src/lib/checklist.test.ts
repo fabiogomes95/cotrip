@@ -19,6 +19,7 @@ function item(p: Partial<ChecklistItemDTO>): ChecklistItemDTO {
     installments: 1,
     paidInstallments: 0,
     firstDueDate: null,
+    paidById: null,
     position: 0,
     ...p,
   };

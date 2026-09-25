@@ -1221,6 +1221,80 @@ a {
   color: var(--ink-soft);
 }
 
+/* ---- acerto de contas ---- */
+.acerto {
+  margin-top: 12px;
+  padding: 11px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.acerto-tit {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+.acerto-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.acerto-lista li {
+  display: grid;
+  grid-template-columns: minmax(70px, auto) 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.acerto-lista .nome {
+  font-weight: 700;
+  color: var(--ink);
+}
+.acerto-lista .valores {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.acerto-lista .saldo {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+/* Verde para quem tem a receber, laranja para quem deve — laranja e não
+   vermelho: dever à própria dupla não é erro, é só um acerto pendente. */
+.acerto-lista .saldo.recebe {
+  color: var(--st-reserv);
+}
+.acerto-lista .saldo.deve {
+  color: var(--sun);
+}
+
+.acerto-transf {
+  list-style: none;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.acerto-transf b {
+  color: var(--ink);
+}
+.acerto-ok {
+  margin: 9px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 12.5px;
+  color: var(--st-reserv);
+}
+
 /* ============================================================
    Checklist no cartão
    ============================================================ */
@@ -1541,8 +1615,9 @@ a {
   font-size: 12.5px;
   color: var(--ink-soft);
 }
-.check-pag .linha input {
-  width: 128px;
+.check-pag .linha input,
+.check-pag .linha select {
+  width: 148px;
   flex: none;
   padding: 6px 8px;
   font-size: 13px;

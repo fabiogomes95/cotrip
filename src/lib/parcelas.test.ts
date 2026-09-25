@@ -8,9 +8,9 @@ import {
   quitado,
   valorParcela,
 } from "./parcelas";
-import type { ItemPagavel } from "./parcelas";
+import type { ItemComVencimento } from "./parcelas";
 
-function item(p: Partial<ItemPagavel> = {}): ItemPagavel {
+function item(p: Partial<ItemComVencimento> = {}): ItemComVencimento {
   return {
     amountCents: null,
     installments: 1,

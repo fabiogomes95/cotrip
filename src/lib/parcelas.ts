@@ -11,12 +11,16 @@ import { somarMeses } from "@/lib/datas";
    — e é essa diferença que responde "quanto ainda vai sair do bolso".
    ============================================================ */
 
+/* Dois contratos em vez de um: quase toda conta aqui precisa só do valor e
+   das parcelas. Exigir `firstDueDate` em todas obrigaria quem só quer somar o
+   que foi pago a carregar um campo que não usa. */
 export type ItemPagavel = {
   amountCents: number | null;
   installments: number;
   paidInstallments: number;
-  firstDueDate: string | null;
 };
+
+export type ItemComVencimento = ItemPagavel & { firstDueDate: string | null };
 
 /** Normaliza entradas fora de faixa em vez de confiar no que vem do banco. */
 function saneadas(item: ItemPagavel): { total: number; n: number; pagas: number } {
@@ -63,7 +67,7 @@ export function quitado(item: ItemPagavel): boolean {
  * Assume uma parcela por mês a partir de `firstDueDate` — que é como cartão
  * e a maioria dos parcelamentos de viagem funcionam.
  */
-export function proximoVencimento(item: ItemPagavel): string | null {
+export function proximoVencimento(item: ItemComVencimento): string | null {
   const { n, pagas } = saneadas(item);
   if (!item.firstDueDate || pagas >= n) return null;
   return somarMeses(item.firstDueDate, pagas);

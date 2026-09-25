@@ -36,6 +36,25 @@ export async function PATCH(req: Request, { params }: Params) {
       : {}),
   };
 
+  /* Quem pagou tem que ser membro do quadro. Sem esta checagem daria para
+     creditar a despesa a um usuário qualquer mandando o id na requisição. */
+  if (parsed.data.paidById) {
+    const membro = await prisma.boardMember.findUnique({
+      where: {
+        boardId_userId: {
+          boardId: access.trip.boardId,
+          userId: parsed.data.paidById,
+        },
+      },
+    });
+    if (!membro) {
+      return NextResponse.json(
+        { error: "Essa pessoa não é membro do quadro" },
+        { status: 400 },
+      );
+    }
+  }
+
   const item = await prisma.checklistItem.update({
     where: { id: itemId },
     data: dados,

@@ -127,6 +127,9 @@ export const checklistItemCreateSchema = z.object({
     .max(60)
     .optional(),
   firstDueDate: dataISO,
+  // Só o id; se a pessoa é mesmo do quadro, quem confere é a rota — o schema
+  // não tem como saber disso.
+  paidById: z.union([z.null(), z.string().cuid()]).optional(),
 });
 
 export const checklistItemUpdateSchema = checklistItemCreateSchema.partial();
