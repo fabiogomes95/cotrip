@@ -269,6 +269,11 @@ async function semearQuadroCompartilhado(
     data: {
       boardId: board.id,
       dest: "Santiago e Valparaíso",
+      // Coordenada para a capa do cartão virar mapa em vez de cor.
+      stayName: "Apart no Bellas Artes",
+      stayAddress: "José Miguel de la Barra, Santiago — Chile",
+      stayLat: -33.4372,
+      stayLng: -70.6414,
       whenText: "Julho",
       year: Y + 1,
       startDate: new Date(Date.UTC(Y + 1, 6, 4)),

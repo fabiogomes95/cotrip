@@ -504,10 +504,17 @@ a {
   border-radius: var(--r-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  /* Coluna com o rodapé colado embaixo: é o que dá altura uniforme aos
+     cartões da mesma fileira, independente de quantos itens de checklist
+     cada viagem tem. Antes a grade ficava picotada. */
+  display: flex;
+  flex-direction: column;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
+/* A barra colorida na lateral saiu: com a capa e o selo de situação em
+   cima dela, eram três sinais para a mesma informação. */
 .trip::before {
-  content: "";
+  content: none;
   position: absolute;
   left: 0;
   top: 0;
@@ -534,6 +541,52 @@ a {
 }
 .trip.s-FEITA {
   opacity: 0.82;
+}
+
+/* A faixa da capa. 108px é o bastante para o mapa situar sem roubar a
+   atenção do nome do destino. */
+.trip-capa {
+  position: relative;
+  height: 108px;
+  flex: none;
+}
+.trip-capa .capa {
+  position: absolute;
+  inset: 0;
+}
+/* A contagem regressiva sobe para a capa: é a informação mais quente do
+   cartão e ali ela tem fundo escuro para contrastar. */
+.trip-conta {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(12, 22, 20, 0.62);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.trip-conta.e-hoje,
+.trip-conta.e-andamento {
+  background: var(--st-reserv);
+}
+.trip-conta.e-passado {
+  background: rgba(12, 22, 20, 0.45);
+}
+
+.trip-quando {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* O rodapé desce para a base do cartão, deixando o miolo respirar. */
+.trip-foot {
+  margin-top: auto;
 }
 
 .trip-open {
@@ -636,8 +689,8 @@ a {
 
 .status {
   position: absolute;
-  top: 11px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   z-index: 2;
   border: 0;
   border-radius: 999px;
@@ -678,6 +731,39 @@ a {
 .status.s-FEITA {
   color: var(--st-feita);
   background: color-mix(in srgb, var(--st-feita) 16%, transparent);
+}
+
+/* Sobre a capa o selo ganha fundo próprio: em cima de um gradiente escuro
+   ou de um mapa claro, as cores de fundo por status sumiam.
+
+   Precisa vir DEPOIS das regras `.status.s-*`: elas têm a mesma
+   especificidade (0,2,0), então quem vence é a última da folha. Foi
+   exatamente isso que me fez errar na primeira tentativa. */
+.trip-capa .status {
+  background: rgba(12, 22, 20, 0.62);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+/* O pontinho mantém a cor da situação: é o que preserva o código de cores
+   agora que o fundo do selo é sempre o mesmo. */
+.trip-capa .status.s-IDEIA .sd {
+  background: var(--st-ideia);
+}
+.trip-capa .status.s-PLANEJANDO .sd {
+  background: var(--st-plan);
+}
+.trip-capa .status.s-RESERVADO .sd {
+  background: var(--st-reserv);
+}
+.trip-capa .status.s-FEITA .sd {
+  background: var(--st-feita);
+}
+
+/* O slot de adicionar não acompanha mais a altura dos cartões: eram cinco
+   caixas vazias do tamanho de um cartão cheio dominando a tela. */
+.grid .add-card {
+  align-self: start;
+  min-height: 92px;
 }
 
 .add-card {
@@ -1543,6 +1629,167 @@ textarea.campo {
 .sheet-corpo {
   padding-top: 12px;
   min-height: 260px;
+}
+
+/* ============================================================
+   Capa do cartão
+   ============================================================ */
+.capa {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.capa-cor {
+  display: grid;
+  place-items: center;
+}
+.capa-cor .iniciais {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: 0.06em;
+  /* Marca d'água, não título: presente o bastante para dar identidade,
+     discreta o bastante para não competir com o nome do destino embaixo. */
+  color: rgba(255, 255, 255, 0.34);
+}
+
+/* Mapa: a grade 2×2 de tiles, posicionada para o ponto cair no centro. */
+.capa-mapa .tiles {
+  position: absolute;
+  display: grid;
+  line-height: 0;
+}
+.capa-mapa img {
+  display: block;
+  /* Tile do OSM é colorido e contrastado; a capa é fundo, não protagonista. */
+  filter: saturate(0.78) brightness(1.03);
+}
+.capa-mapa .pino {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  margin: -13px 0 0 -6px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--teal);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+/* Véu na base: garante contraste do que vier por cima, em qualquer tile. */
+.capa-mapa::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.18) 0%,
+    rgba(0, 0, 0, 0) 45%
+  );
+}
+
+/* ============================================================
+   Painel da próxima viagem
+   ============================================================ */
+.proxima {
+  position: relative;
+  margin: 22px 0 6px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  min-height: 188px;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: var(--shadow-md);
+  isolation: isolate;
+}
+.proxima .proxima-capa {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+/* Sobre a capa, um véu escuro de baixo para cima: é ele que deixa o texto
+   branco legível tanto num tile claro de cidade quanto num mapa de mar. */
+.proxima::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgba(12, 22, 20, 0.88) 0%,
+    rgba(12, 22, 20, 0.62) 46%,
+    rgba(12, 22, 20, 0.3) 100%
+  );
+}
+.proxima-conteudo {
+  width: 100%;
+  padding: 20px 22px 18px;
+  color: #fff;
+}
+.proxima-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.proxima .chamada {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+}
+.proxima .selo {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.proxima h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4.4vw, 34px);
+  font-weight: 800;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+.proxima .quando {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.86);
+}
+.proxima-pe {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.proxima .pendencias {
+  flex: 1;
+  min-width: 180px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+}
+.proxima .pendencias.tudo-certo {
+  color: #9fe3cd;
+}
+.proxima .proxima-pe .btn {
+  flex: none;
+  background: rgba(255, 255, 255, 0.95);
+  border-color: transparent;
+  color: var(--ink);
+  font-weight: 700;
+}
+.proxima .proxima-pe .btn:hover {
+  background: #fff;
 }
 
 /* ============================================================

@@ -3,6 +3,8 @@
 import type { BoardSummary, ChecklistItemDTO, MemberDTO, Role, TripDTO } from "@/types";
 import type { Status } from "@/lib/status";
 import { Arquivo } from "./Arquivo";
+import { ProximaViagem } from "./ProximaViagem";
+import { proximaViagem } from "@/lib/proxima";
 import { NewBoardModal } from "./NewBoardModal";
 import { STATUSES, STATUS_LABEL, nextStatus } from "@/lib/status";
 import { ShareModal } from "./ShareModal";
@@ -254,6 +256,13 @@ export function BoardApp({
     [trips],
   );
 
+  /* A viagem em destaque. Depende de "hoje", então só existe depois que o
+     componente monta — mesmo motivo da contagem regressiva nos cartões. */
+  const destaque = useMemo(
+    () => (hoje ? proximaViagem(ativas, hoje) : null),
+    [ativas, hoje],
+  );
+
   const years = useMemo(() => {
     const set = new Set<number>(BASE_YEARS);
     ativas.forEach((t) => {
@@ -383,6 +392,17 @@ export function BoardApp({
           </p>
 
         </section>
+
+        {/* O painel de destaque some quando há filtro ativo: ali a pessoa
+            está procurando algo específico, e um bloco grande fora do
+            filtro seria ruído. */}
+        {destaque && !filtering && (
+          <ProximaViagem
+            trip={destaque}
+            hoje={hoje}
+            onAbrir={() => setModal({ type: "trip", trip: destaque })}
+          />
+        )}
 
         {/* ---------- filters ---------- */}
         <div className="filters">

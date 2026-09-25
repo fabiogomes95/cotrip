@@ -1,5 +1,7 @@
 "use client";
 
+import { Capa } from "./Capa";
+
 import type { ChecklistItemDTO, TripDTO } from "@/types";
 import { STATUS_LABEL } from "@/lib/status";
 import { contagem, formatarPeriodo, noites } from "@/lib/datas";
@@ -112,40 +114,37 @@ export function TripCard({
   const quanto = hoje ? contagem(trip.startDate, trip.endDate, hoje) : null;
   const dias = noites(trip.startDate, trip.endDate);
 
-  /* O cartão tem três zonas, e elas são <button> separados de propósito:
-     antes o cartão inteiro era um botão só, e o checklist tinha ficado
-     dentro dele — botão dentro de botão é HTML inválido e o clique na
-     caixinha nunca chegaria a marcar o item, só abriria a viagem. */
+  /* O cartão tem zonas que são <button> separados de propósito: antes o
+     cartão inteiro era um botão só, e o checklist ficava dentro dele —
+     botão dentro de botão é HTML inválido, e o clique na caixinha nunca
+     chegava a marcar o item, só abria a viagem. */
   return (
     <article className={`trip s-${trip.status}`}>
-      <button
-        className={`status s-${trip.status}`}
-        title="Avançar status"
-        aria-label={`Status: ${STATUS_LABEL[trip.status]}. Clique para avançar`}
-        onClick={() => onCycle(trip)}
-      >
-        <span className="sd" />
-        {STATUS_LABEL[trip.status]}
-      </button>
+      <div className="trip-capa">
+        <Capa dest={trip.dest} lat={trip.stayLat} lng={trip.stayLng} />
+        <button
+          className={`status s-${trip.status}`}
+          title="Avançar situação"
+          aria-label={`Situação: ${STATUS_LABEL[trip.status]}. Clique para avançar`}
+          onClick={() => onCycle(trip)}
+        >
+          <span className="sd" />
+          {STATUS_LABEL[trip.status]}
+        </button>
+        {quanto && <span className={`trip-conta e-${quanto.estado}`}>{quanto.txt}</span>}
+      </div>
 
       {/* zona de leitura — abre a viagem */}
       <button className="trip-open" onClick={() => onOpen(trip)}>
-        <div className="trip-row1">
-          <span className="when">{when}</span>
-        </div>
-        {(quanto || dias != null) && (
-          <div className="trip-datas">
-            {quanto && (
-              <span className={`conta e-${quanto.estado}`}>{quanto.txt}</span>
-            )}
-            {dias != null && dias > 0 && (
-              <span className="dur">
-                {dias} {dias === 1 ? "noite" : "noites"}
-              </span>
-            )}
-          </div>
-        )}
         <h3 className="dest">{trip.dest || "Sem nome"}</h3>
+        <div className="trip-quando">
+          <span className="when">{when}</span>
+          {dias != null && dias > 0 && (
+            <span className="dur">
+              {dias} {dias === 1 ? "noite" : "noites"}
+            </span>
+          )}
+        </div>
         {/* Preview sem a marcação: senão o cartão mostraria "**Dia 1**" com
             os asteriscos à mostra. */}
         {trip.note && <p className="note">{paraTextoSimples(trip.note)}</p>}
@@ -156,23 +155,23 @@ export function TripCard({
         <CardChecklist trip={trip} onToggle={onToggleItem} />
       )}
 
+      {/* Uma linha de dinheiro, não três. O cartão tinha "3/5 · R$1.060
+          pagos · falta R$3.290", "R$4.200/pessoa" e "2 pessoas · R$8.400"
+          empilhados — o detalhe mora no modal; aqui fica o número que
+          resume. */}
       <div className="trip-foot">
         {trip.budgetCents && trip.budgetCents > 0 ? (
           <span className="budget">
-            {formatBRL(trip.budgetCents)} <span className="per">/pessoa</span>
-            {/* Segunda linha em vez de tudo emendado: numa só, o texto
-                empurrava o "editar →" e o rodapé quebrava torto. */}
-            {trip.people > 1 && (
-              <span className="total">
-                {trip.people} pessoas · {formatBRL(trip.budgetCents * trip.people)}
-              </span>
-            )}
+            {formatBRL(trip.budgetCents * trip.people)}
+            <span className="per">
+              {trip.people > 1 ? ` · ${trip.people} pessoas` : " estimado"}
+            </span>
           </span>
         ) : (
           <span className="budget empty">sem orçamento</span>
         )}
         <button type="button" className="edit-hint" onClick={() => onOpen(trip)}>
-          editar →
+          abrir →
         </button>
       </div>
     </article>

@@ -25,6 +25,8 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Painel da próxima viagem** no topo do quadro: contagem regressiva, datas e o que ainda depende de você — quanto falta pagar, quantos itens fechar, quantas tarefas de antes de sair.
+- **Capa em cada cartão**: o mapa do lugar quando a hospedagem tem coordenada, ou uma cor derivada do nome do destino. Determinística e sem nada guardado no banco — "Olinda" é sempre a mesma cor.
 - **No destino**: passeios com o contato de quem organiza (o telefone vira link de discagem) e um registro corrido dos gastos do dia a dia, somados por categoria — o módulo existe para tornar visível o dinheiro que some em muitas corridas pequenas.
 - **Antes de sair**: checklist de casa e pets, agrupado por momento (com antecedência, na véspera, na hora de sair), com responsável por tarefa e um resumo de quem ficou com o quê. Toda viagem nova nasce com a rotina preenchida.
 - **Diário em Markdown**: as anotações aceitam títulos, listas, tarefas, destaques e links, com abas de escrever e ler. O texto é guardado como Markdown puro — continua legível fora do app e sem prender o conteúdo a nenhum editor.
