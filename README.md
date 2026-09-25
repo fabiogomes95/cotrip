@@ -63,7 +63,10 @@ src/
 
 ### Pré-requisitos
 - Node.js 20+
-- Docker (para o Postgres local) — ou um Postgres já rodando.
+- Um PostgreSQL. Duas opções:
+  - **Neon** (recomendado) — crie um branch `dev` do projeto e use as URLs dele.
+    Mesmo Postgres da produção, nada para instalar.
+  - **Docker local** — `docker compose up -d` sobe um Postgres 16 na porta 5432.
 
 ### Passos
 
@@ -75,11 +78,11 @@ npm install
 cp .env.example .env
 #   → gere um AUTH_SECRET:  openssl rand -base64 32
 
-# 3. Subir o Postgres local
+# 3. Subir o Postgres local — só se for usar Docker em vez do Neon
 docker compose up -d
 
-# 4. Criar o schema no banco
-npm run db:push        # ou: npm run db:migrate (cria migração versionada)
+# 4. Aplicar as migrações no banco
+npx prisma migrate deploy
 
 # 5. (opcional) Popular com dados de exemplo
 npm run db:seed
@@ -94,10 +97,10 @@ npm run dev            # http://localhost:3000
 | Script | O que faz |
 |---|---|
 | `npm run dev` | Ambiente de desenvolvimento |
-| `npm run build` | Gera o Prisma Client e faz o build de produção |
+| `npm run build` | Aplica migrações, gera o Prisma Client e faz o build |
 | `npm run start` | Sobe o build de produção |
-| `npm run db:push` | Aplica o schema no banco (sem migração) |
-| `npm run db:migrate` | Cria e aplica uma migração |
+| `npm run db:push` | Aplica o schema sem criar migração (só para rascunho) |
+| `npm run db:migrate` | Cria e aplica uma migração nova (após mudar o schema) |
 | `npm run db:seed` | Popula dados de exemplo |
 | `npm run db:studio` | Abre o Prisma Studio |
 | `npm run typecheck` | Checagem de tipos (tsc) |
@@ -128,12 +131,30 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 
 ## ☁️ Deploy
 
-Combina bem com **Vercel** (app) + **Neon** ou **Supabase** (Postgres gerenciado):
+**Vercel** (app) + **Neon** (Postgres).
 
 1. Suba o repositório no GitHub e importe na Vercel.
-2. Configure as variáveis de ambiente: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (o domínio do deploy).
-3. Rode as migrações no banco de produção (`npx prisma migrate deploy`).
-4. Deploy. O `build` já roda `prisma generate`.
+2. No painel do Neon, copie as **duas** connection strings do branch de produção
+   e configure na Vercel:
+
+   | Variável | Valor |
+   |---|---|
+   | `DATABASE_URL` | connection string **pooled** (host termina em `-pooler`) |
+   | `DIRECT_URL` | connection string **direta** (sem `-pooler`) |
+   | `AUTH_SECRET` | `openssl rand -base64 32` |
+
+   `AUTH_URL` pode ficar de fora: o Auth.js v5 detecta o domínio sozinho na Vercel.
+
+3. Deploy. O `build` roda `prisma migrate deploy` antes do `next build`, então o
+   schema é aplicado automaticamente a cada deploy.
+
+**Por que duas URLs?** O runtime é serverless e abre muitas conexões curtas — daí
+o pooler. Já o `prisma migrate` precisa de uma sessão própria, que o pooler não
+entrega; por isso o `directUrl` no `schema.prisma`.
+
+> ⚠️ **Preview deployments:** eles também rodam `migrate deploy`. Aponte o
+> `DATABASE_URL`/`DIRECT_URL` do ambiente *Preview* da Vercel para um branch de
+> dev do Neon, senão um preview com migração nova altera o banco de produção.
 
 ---
 

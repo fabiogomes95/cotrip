@@ -8,7 +8,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime: endpoint com pooling (host termina em "-pooler"), para aguentar
+  // o serverless da Vercel sem estourar o limite de conexoes do Postgres.
+  url       = env("DATABASE_URL")
+  // Migracoes: conexao direta (sem pooler) — o migrate precisa de sessao propria.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
