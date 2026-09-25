@@ -22,6 +22,19 @@ export interface ChecklistItemDTO {
   position: number;
 }
 
+export type PreTripWhen = "ANTES" | "VESPERA" | "SAIDA";
+
+export interface PreTaskDTO {
+  id: string;
+  tripId: string;
+  label: string;
+  done: boolean;
+  /** Quem ficou responsável. Texto livre: costuma ser gente sem conta no app. */
+  assignee: string;
+  when: PreTripWhen;
+  position: number;
+}
+
 export interface TripDTO {
   id: string;
   boardId: string;
@@ -40,6 +53,7 @@ export interface TripDTO {
   createdAt: string;
   updatedAt: string;
   items: ChecklistItemDTO[];
+  preTasks: PreTaskDTO[];
 }
 
 export interface BoardSummary {

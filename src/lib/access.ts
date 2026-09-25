@@ -40,6 +40,17 @@ export async function getTripAccess(tripId: string, userId: string) {
   return { trip, membership };
 }
 
+/** Mesma ideia, partindo de uma tarefa de antes de sair. */
+export async function getPreTaskAccess(taskId: string, userId: string) {
+  const task = await prisma.preTripTask.findUnique({ where: { id: taskId } });
+  if (!task) return null;
+
+  const access = await getTripAccess(task.tripId, userId);
+  if (!access) return null;
+
+  return { task, ...access };
+}
+
 /** Mesma ideia, partindo de um item do checklist. */
 export async function getItemAccess(itemId: string, userId: string) {
   const item = await prisma.checklistItem.findUnique({ where: { id: itemId } });

@@ -34,6 +34,13 @@ import {
 } from "@/lib/parcelas";
 import { calcularSaldos, sugerirPagamentos } from "@/lib/acerto";
 import { paraTextoSimples } from "@/lib/markdown";
+import {
+  MOMENTOS,
+  MOMENTO_LABEL,
+  agruparPorMomento,
+  pendenciasPorPessoa,
+  progresso,
+} from "@/lib/pre-viagem";
 
 /* O renderizador de Markdown pesa ~48KB e só entra em cena quando alguém
    abre a aba "Ler" de uma viagem. Carregado sob demanda, ele sai do pacote
@@ -54,6 +61,8 @@ import type {
   ChecklistItemDTO,
   InviteDTO,
   MemberDTO,
+  PreTaskDTO,
+  PreTripWhen,
   Role,
   TripDTO,
 } from "@/types";
@@ -923,6 +932,36 @@ function BotaoPerigo({
 /* ============================================================
    Modal de viagem (criar / editar)
    ============================================================ */
+type AbaId = "viagem" | "diario" | "gastos" | "antes";
+
+const ABAS: ReadonlyArray<{ id: AbaId; rotulo: string }> = [
+  { id: "viagem", rotulo: "Viagem" },
+  { id: "diario", rotulo: "Diário" },
+  { id: "gastos", rotulo: "Gastos" },
+  { id: "antes", rotulo: "Antes de sair" },
+];
+
+/**
+ * O número ao lado do rótulo da aba.
+ *
+ * Mostra o que falta, não o total: numa aba fechada, "3" querendo dizer
+ * "três pendências" é informação; "10" querendo dizer "dez itens" é ruído.
+ * Por isso some quando não há nada pendente.
+ */
+function contadorDaAba(id: AbaId, trip: TripDTO | null): string | null {
+  if (!trip) return null;
+  if (id === "gastos") {
+    const faltam = trip.items.length - feitos(trip.items);
+    return faltam > 0 ? String(faltam) : null;
+  }
+  if (id === "antes") {
+    const { feitas, total } = progresso(trip.preTasks);
+    return total - feitas > 0 ? String(total - feitas) : null;
+  }
+  return null;
+}
+
+
 function TripModal({
   trip,
   presetYear,
@@ -953,6 +992,7 @@ function TripModal({
     String(trip ? trip.people : Math.max(1, defaultPeople)),
   );
   const [saving, setSaving] = useState(false);
+  const [aba, setAba] = useState<AbaId>("viagem");
   const destRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -966,7 +1006,10 @@ function TripModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!dest.trim()) {
-      destRef.current?.focus();
+      // O campo pode estar numa aba escondida: traz a pessoa até ele em vez
+      // de recusar o envio em silêncio.
+      setAba("viagem");
+      requestAnimationFrame(() => destRef.current?.focus());
       return;
     }
     setSaving(true);
@@ -996,175 +1039,225 @@ function TripModal({
         <h3>{trip ? "Editar viagem" : "Nova viagem"}</h3>
         <div className="sub">{trip ? trip.dest : "Pra onde vocês querem ir?"}</div>
 
-        <div className="field">
-          <label htmlFor="t-dest">Destino</label>
-          <input
-            id="t-dest"
-            ref={destRef}
-            type="text"
-            value={dest}
-            onChange={(e) => setDest(e.target.value)}
-            placeholder="Fernando de Noronha, Lisboa, Chapada…"
-            autoComplete="off"
-            required
-          />
-        </div>
-
-        <div className="two">
-          <div className="field">
-            <label htmlFor="t-when">Quando (época)</label>
-            <input
-              id="t-when"
-              type="text"
-              value={whenText}
-              onChange={(e) => setWhenText(e.target.value)}
-              placeholder="Julho, Carnaval, verão…"
-              autoComplete="off"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="t-year">Ano</label>
-            {/* Com data de ida preenchida o ano deixa de ser escolha: vem
-                dela. Manter os dois editáveis permitiria uma viagem marcada
-                para março de 2027 aparecer na faixa de 2026. */}
-            <select
-              id="t-year"
-              value={ida ? Number(ida.slice(0, 4)) : year}
-              disabled={!!ida}
-              title={ida ? "Vem da data de ida" : undefined}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-              <option value={0}>Algum dia / sem data</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="two">
-          <div className="field">
-            <label htmlFor="t-ida">Ida (se já souber)</label>
-            <input
-              id="t-ida"
-              type="date"
-              value={ida}
-              onChange={(e) => {
-                const v = e.target.value;
-                setIda(v);
-                // Volta antes da ida não faz sentido; em vez de recusar
-                // depois, ajusto na hora.
-                if (v && volta && volta < v) setVolta(v);
-              }}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="t-volta">Volta</label>
-            <input
-              id="t-volta"
-              type="date"
-              value={volta}
-              min={ida || undefined}
-              disabled={!ida}
-              title={!ida ? "Preencha a ida primeiro" : undefined}
-              onChange={(e) => setVolta(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {ida && (
-          <p className="dica-datas">
-            {formatarPeriodo(ida, volta || null)}
-            {noites(ida, volta || null) != null &&
-              noites(ida, volta || null)! > 0 &&
-              ` · ${noites(ida, volta || null)} noites`}
-          </p>
-        )}
-
-        <div className="field">
-          <label>Status</label>
-          <div className="seg">
-            {STATUSES.map((s) => (
+        {/* O modal virou quatro abas. Antes era uma coluna só, e já rolava
+            1,8x a tela no celular — com as tarefas de antes de sair (e com o
+            mapa e as atividades que vêm depois) viraria um formulário
+            impossível de percorrer. As abas também dão um lugar definido
+            para cada módulo novo, em vez de empilhar tudo no fim. */}
+        <nav className="sheet-abas" aria-label="Seções da viagem">
+          {ABAS.map((a) => {
+            const marcador = contadorDaAba(a.id, trip);
+            return (
               <button
-                key={s}
+                key={a.id}
                 type="button"
-                className={`p-${s}`}
-                aria-pressed={status === s}
-                onClick={() => setStatus(s)}
+                aria-pressed={aba === a.id}
+                onClick={() => setAba(a.id)}
               >
-                <span className="sd" />
-                {STATUS_LABEL[s]}
+                {a.rotulo}
+                {marcador && <span className="n">{marcador}</span>}
               </button>
-            ))}
-          </div>
-        </div>
+            );
+          })}
+        </nav>
 
-        <div className="two">
+        <div className="sheet-corpo">
+        {aba === "viagem" && (
+          <>
+
           <div className="field">
-            <label htmlFor="t-budget">Orçamento · por pessoa (R$)</label>
-            {/* type="text", não "number": o input numérico do navegador
-                rejeita vírgula, e ninguém escreve "2190.47" em português.
-                O inputMode abre o teclado numérico no celular assim mesmo. */}
+            <label htmlFor="t-dest">Destino</label>
             <input
-              id="t-budget"
+              id="t-dest"
+              ref={destRef}
               type="text"
-              inputMode="decimal"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              placeholder="ex: 2500 ou 2190,47"
+              value={dest}
+              onChange={(e) => setDest(e.target.value)}
+              placeholder="Fernando de Noronha, Lisboa, Chapada…"
               autoComplete="off"
+              required
             />
           </div>
-          <div className="field">
-            <label htmlFor="t-people">Quantas pessoas</label>
-            <input
-              id="t-people"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={50}
-              step={1}
-              value={people}
-              onChange={(e) => setPeople(e.target.value)}
-              autoComplete="off"
-            />
+
+          <div className="two">
+            <div className="field">
+              <label htmlFor="t-when">Quando (época)</label>
+              <input
+                id="t-when"
+                type="text"
+                value={whenText}
+                onChange={(e) => setWhenText(e.target.value)}
+                placeholder="Julho, Carnaval, verão…"
+                autoComplete="off"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="t-year">Ano</label>
+              {/* Com data de ida preenchida o ano deixa de ser escolha: vem
+                  dela. Manter os dois editáveis permitiria uma viagem marcada
+                  para março de 2027 aparecer na faixa de 2026. */}
+              <select
+                id="t-year"
+                value={ida ? Number(ida.slice(0, 4)) : year}
+                disabled={!!ida}
+                title={ida ? "Vem da data de ida" : undefined}
+                onChange={(e) => setYear(Number(e.target.value))}
+              >
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+                <option value={0}>Algum dia / sem data</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        {/* O total só aparece quando muda alguma coisa: com 1 pessoa ele
-            seria igual ao orçamento e viraria ruído. */}
-        {Number(people) > 1 && (parseCentavos(budget) ?? 0) > 0 && (
-          <p className="total-viagem">
-            {people} × {formatBRL(parseCentavos(budget))} ={" "}
-            <b>{formatBRL((parseCentavos(budget) ?? 0) * Number(people))}</b> no
-            total
-          </p>
-        )}
+          <div className="two">
+            <div className="field">
+              <label htmlFor="t-ida">Ida (se já souber)</label>
+              <input
+                id="t-ida"
+                type="date"
+                value={ida}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setIda(v);
+                  // Volta antes da ida não faz sentido; em vez de recusar
+                  // depois, ajusto na hora.
+                  if (v && volta && volta < v) setVolta(v);
+                }}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="t-volta">Volta</label>
+              <input
+                id="t-volta"
+                type="date"
+                value={volta}
+                min={ida || undefined}
+                disabled={!ida}
+                title={!ida ? "Preencha a ida primeiro" : undefined}
+                onChange={(e) => setVolta(e.target.value)}
+              />
+            </div>
+          </div>
 
-        <DiarioField valor={note} onChange={setNote} />
-
-        {/* O checklist tem ids próprios no banco, então precisa da viagem já
-            criada para pendurar os itens. Em viagem nova ele aparece como
-            aviso em vez de sumir: assim a pessoa sabe que existe. */}
-        {trip ? (
-          <Checklist
-            tripId={trip.id}
-            initial={trip.items}
-            budgetCents={trip.budgetCents}
-            membros={membros}
-            people={Math.max(1, Number(people) || 1)}
-          />
-        ) : (
-          <div className="field">
-            <label>Checklist</label>
-            <p className="check-vazio">
-              Salve a viagem e o checklist abre aqui — aí você lança passagem,
-              hospedagem e os valores reais de cada um.
+          {ida && (
+            <p className="dica-datas">
+              {formatarPeriodo(ida, volta || null)}
+              {noites(ida, volta || null) != null &&
+                noites(ida, volta || null)! > 0 &&
+                ` · ${noites(ida, volta || null)} noites`}
             </p>
+          )}
+
+          <div className="field">
+            <label>Status</label>
+            <div className="seg">
+              {STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`p-${s}`}
+                  aria-pressed={status === s}
+                  onClick={() => setStatus(s)}
+                >
+                  <span className="sd" />
+                  {STATUS_LABEL[s]}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <div className="two">
+            <div className="field">
+              <label htmlFor="t-budget">Orçamento · por pessoa (R$)</label>
+              {/* type="text", não "number": o input numérico do navegador
+                  rejeita vírgula, e ninguém escreve "2190.47" em português.
+                  O inputMode abre o teclado numérico no celular assim mesmo. */}
+              <input
+                id="t-budget"
+                type="text"
+                inputMode="decimal"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="ex: 2500 ou 2190,47"
+                autoComplete="off"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="t-people">Quantas pessoas</label>
+              <input
+                id="t-people"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={50}
+                step={1}
+                value={people}
+                onChange={(e) => setPeople(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          {/* O total só aparece quando muda alguma coisa: com 1 pessoa ele
+              seria igual ao orçamento e viraria ruído. */}
+          {Number(people) > 1 && (parseCentavos(budget) ?? 0) > 0 && (
+            <p className="total-viagem">
+              {people} × {formatBRL(parseCentavos(budget))} ={" "}
+              <b>{formatBRL((parseCentavos(budget) ?? 0) * Number(people))}</b> no
+              total
+            </p>
+          )}
+          </>
         )}
+
+        {aba === "diario" && (
+          <>
+          <DiarioField valor={note} onChange={setNote} />
+          </>
+        )}
+
+        {aba === "gastos" && (
+          <>
+          {/* O checklist tem ids próprios no banco, então precisa da viagem já
+              criada para pendurar os itens. Em viagem nova ele aparece como
+              aviso em vez de sumir: assim a pessoa sabe que existe. */}
+          {trip ? (
+            <Checklist
+              tripId={trip.id}
+              initial={trip.items}
+              budgetCents={trip.budgetCents}
+              membros={membros}
+              people={Math.max(1, Number(people) || 1)}
+            />
+          ) : (
+            <div className="field">
+              <label>Checklist</label>
+              <p className="check-vazio">
+                Salve a viagem e o checklist abre aqui — aí você lança passagem,
+                hospedagem e os valores reais de cada um.
+              </p>
+            </div>
+          )}
+          </>
+        )}
+
+        {aba === "antes" &&
+          (trip ? (
+            <PreViagem tripId={trip.id} initial={trip.preTasks} />
+          ) : (
+            <div className="field">
+              <label>Antes de sair</label>
+              <p className="check-vazio">
+                Salve a viagem e a lista de antes de sair aparece aqui, já
+                preenchida com a rotina de fechar a casa.
+              </p>
+            </div>
+          ))}
+        </div>
 
         <div className="sheet-actions">
           {trip && (
@@ -2469,5 +2562,254 @@ function DiarioField({
         <p className="check-vazio">O diário desta viagem ainda está em branco.</p>
       )}
     </div>
+  );
+}
+
+/* ============================================================
+   Antes de sair — casa, pets, logística
+
+   Lista separada da de gastos de propósito: aqui nada tem valor, e o que
+   importa é quem ficou responsável. Cada momento tem o próprio campo de
+   adicionar, então o "quando" vem de onde a pessoa digitou, sem precisar
+   escolher num seletor.
+   ============================================================ */
+function PreViagem({
+  tripId,
+  initial,
+}: {
+  tripId: string;
+  initial: PreTaskDTO[];
+}) {
+  const [tarefas, setTarefas] = useState<PreTaskDTO[]>(initial);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const { feitas, total, pct, tudoPronto } = progresso(tarefas);
+  const grupos = agruparPorMomento(tarefas);
+  const pendencias = pendenciasPorPessoa(tarefas);
+
+  async function api<T>(url: string, init: RequestInit): Promise<T> {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Não deu para salvar");
+    return data as T;
+  }
+
+  async function adicionar(label: string, when: PreTripWhen) {
+    setErro(null);
+    try {
+      const { task } = await api<{ task: PreTaskDTO }>(`/api/trips/${tripId}/tasks`, {
+        method: "POST",
+        body: JSON.stringify({ label, when }),
+      });
+      setTarefas((prev) => [...prev, task]);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não deu para adicionar");
+    }
+  }
+
+  // Otimista, guardando o estado anterior inteiro: é à prova de cliques
+  // rápidos em sequência, que numa lista de dez tarefas acontecem sempre.
+  async function atualizar(id: string, patch: Partial<PreTaskDTO>) {
+    const antes = tarefas;
+    setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    setErro(null);
+    try {
+      await api(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+    } catch (e) {
+      setTarefas(antes);
+      setErro(e instanceof Error ? e.message : "Não deu para salvar");
+    }
+  }
+
+  async function remover(id: string) {
+    const antes = tarefas;
+    setTarefas((prev) => prev.filter((t) => t.id !== id));
+    setErro(null);
+    try {
+      await api(`/api/tasks/${id}`, { method: "DELETE" });
+    } catch {
+      setTarefas(antes);
+      setErro("Não deu para excluir");
+    }
+  }
+
+  return (
+    <div className="field">
+      <div className="pre-topo">
+        <label>Antes de sair</label>
+        {total > 0 && (
+          <span className={`pre-progresso${tudoPronto ? " pronto" : ""}`}>
+            <span className="barra">
+              <span className="fill" style={{ width: `${pct}%` }} />
+            </span>
+            {tudoPronto ? "tudo pronto ✦" : `${feitas}/${total}`}
+          </span>
+        )}
+      </div>
+
+      {MOMENTOS.map((momento) => {
+        const grupo = grupos.find((g) => g.momento === momento);
+        return (
+          <div className="pre-grupo" key={momento}>
+            <div className="pre-grupo-tit">{MOMENTO_LABEL[momento]}</div>
+            {grupo?.tarefas.map((t) => (
+              <PreLinha
+                key={t.id}
+                tarefa={t}
+                onToggle={() => atualizar(t.id, { done: !t.done })}
+                onCommit={(patch) => atualizar(t.id, patch)}
+                onRemove={() => remover(t.id)}
+              />
+            ))}
+            <NovaTarefa onAdd={(label) => void adicionar(label, momento)} />
+          </div>
+        );
+      })}
+
+      {erro && <p className="check-erro">{erro}</p>}
+
+      {/* O resumo por pessoa é o motivo de existir o campo de responsável:
+          serve para conferir de relance se combinou tudo com todo mundo. */}
+      {pendencias.length > 0 && (
+        <div className="pre-pendencias">
+          <div className="tit">Combinado com</div>
+          {pendencias.map((p) => (
+            <div className="linha" key={p.pessoa}>
+              <b>{p.pessoa}</b>
+              <span>{p.tarefas.join(" · ")}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreLinha({
+  tarefa,
+  onToggle,
+  onCommit,
+  onRemove,
+}: {
+  tarefa: PreTaskDTO;
+  onToggle: () => void;
+  onCommit: (patch: Partial<PreTaskDTO>) => void;
+  onRemove: () => void;
+}) {
+  const [label, setLabel] = useState(tarefa.label);
+  const [quem, setQuem] = useState(tarefa.assignee);
+
+  // Mesmo padrão das outras linhas editáveis: ajuste durante o render, para
+  // o rascunho acompanhar um rollback sem renderizar duas vezes.
+  const [visto, setVisto] = useState(tarefa);
+  if (visto !== tarefa) {
+    setVisto(tarefa);
+    setLabel(tarefa.label);
+    setQuem(tarefa.assignee);
+  }
+
+  function gravarLabel() {
+    const v = label.trim();
+    if (!v) {
+      setLabel(tarefa.label); // apagar tudo não vira tarefa sem nome
+      return;
+    }
+    if (v !== tarefa.label) onCommit({ label: v });
+  }
+
+  function gravarQuem() {
+    const v = quem.trim();
+    if (v !== tarefa.assignee) onCommit({ assignee: v });
+  }
+
+  const enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <div className={`pre-linha${tarefa.done ? " feita" : ""}`}>
+      <button
+        type="button"
+        className="check-box"
+        role="checkbox"
+        aria-checked={tarefa.done}
+        aria-label={tarefa.label}
+        onClick={onToggle}
+      >
+        <span aria-hidden="true">{tarefa.done ? "✓" : ""}</span>
+      </button>
+
+      <input
+        className="pre-txt"
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        onBlur={gravarLabel}
+        onKeyDown={enter}
+        autoComplete="off"
+        aria-label={`Tarefa: ${tarefa.label}`}
+      />
+
+      <input
+        className="pre-quem"
+        type="text"
+        value={quem}
+        onChange={(e) => setQuem(e.target.value)}
+        onBlur={gravarQuem}
+        onKeyDown={enter}
+        placeholder="quem?"
+        autoComplete="off"
+        aria-label={`Responsável por ${tarefa.label}`}
+      />
+
+      <button
+        type="button"
+        className="check-del"
+        onClick={onRemove}
+        aria-label={`Excluir ${tarefa.label}`}
+        title="Excluir tarefa"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+/** Campo de adicionar, um por momento — o "quando" vem de onde se digitou. */
+function NovaTarefa({ onAdd }: { onAdd: (label: string) => void }) {
+  const [texto, setTexto] = useState("");
+
+  function enviar() {
+    const v = texto.trim();
+    if (!v) return;
+    onAdd(v);
+    setTexto("");
+  }
+
+  return (
+    <input
+      className="pre-nova"
+      type="text"
+      value={texto}
+      onChange={(e) => setTexto(e.target.value)}
+      onKeyDown={(e) => {
+        // preventDefault é essencial: sem ele o Enter envia o formulário da
+        // viagem inteira em vez de criar a tarefa.
+        if (e.key === "Enter") {
+          e.preventDefault();
+          enviar();
+        }
+      }}
+      onBlur={enviar}
+      placeholder="+ adicionar"
+      autoComplete="off"
+      aria-label="Nova tarefa"
+    />
   );
 }

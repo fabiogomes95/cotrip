@@ -143,4 +143,14 @@ export const checklistItemCreateSchema = z.object({
 
 export const checklistItemUpdateSchema = checklistItemCreateSchema.partial();
 
+// --- Tarefas de antes de sair ---
+export const preTaskCreateSchema = z.object({
+  label: z.string().trim().min(1, "Dê um nome à tarefa").max(120),
+  done: z.boolean().optional().default(false),
+  assignee: z.string().trim().max(80).optional().default(""),
+  when: z.enum(["ANTES", "VESPERA", "SAIDA"]).optional().default("ANTES"),
+});
+
+export const preTaskUpdateSchema = preTaskCreateSchema.partial();
+
 export type TripInput = z.infer<typeof tripCreateSchema>;

@@ -83,6 +83,7 @@ model Trip {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   items       ChecklistItem[]
+  preTasks    PreTripTask[]
 
   @@index([boardId])
 }
@@ -109,6 +110,7 @@ model ChecklistItem {
    * tivesse valor ou data propria.
    */
   /**
+   * /**
    * /* Entrada: o pedaco pago na hora da compra. O que sobra (amountCents menos
    * a entrada) e que se divide em `installments`. Fica separado do valor das
    * parcelas porque entrada quase nunca e igual a uma parcela — e porque so
@@ -144,6 +146,41 @@ model RateHit {
   createdAt DateTime @default(now())
 
   @@index([key, createdAt])
+}
+
+/// Quando a tarefa precisa ser feita. Agrupa a lista em vez de virar data:
+/// "na véspera" é mais útil que "11/11", e não quebra se a viagem mudar de dia.
+enum PreTripWhen {
+  ANTES // nas semanas anteriores
+  VESPERA // na véspera
+  SAIDA // na hora de sair de casa
+}
+
+/// Tarefa de antes de viajar: desligar o gás, quem alimenta os gatos,
+/// deixar chave com alguém.
+///
+/// Modelo separado do ChecklistItem de propósito. Aquele existe para
+/// dinheiro (valor, parcelas, quem pagou); aqui nada disso faz sentido, e
+/// os sete campos financeiros ficariam nulos em toda linha. O que esta
+/// lista precisa — responsável e momento — o outro não tem.
+model PreTripTask {
+  id     String @id @default(cuid())
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId String
+
+  label String
+  done  Boolean @default(false)
+
+  /// Quem ficou de fazer. Texto livre, e nao uma relacao com User, porque
+  /// quem alimenta o gato costuma ser a vizinha ou o irmao — gente que nao
+  /// tem conta no app e nunca vai ter.
+  assignee String      @default("")
+  when     PreTripWhen @default(ANTES)
+  position Int         @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
 }
 
 model Invitation {

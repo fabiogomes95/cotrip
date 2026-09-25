@@ -1470,6 +1470,197 @@ a {
 }
 
 /* ============================================================
+   Abas do modal de viagem
+   ============================================================ */
+.sheet-abas {
+  display: flex;
+  gap: 2px;
+  margin: 14px 0 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+  /* No celular as quatro abas não cabem lado a lado: rolam na horizontal
+     dentro da própria faixa, em vez de quebrarem linha e empurrarem o
+     formulário para baixo. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sheet-abas::-webkit-scrollbar {
+  display: none;
+}
+.sheet-abas button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 7px 11px;
+  margin-bottom: -3px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.sheet-abas button:hover {
+  color: var(--ink-soft);
+}
+.sheet-abas button[aria-pressed="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--teal);
+}
+.sheet-abas .n {
+  min-width: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+.sheet-abas button[aria-pressed="true"] .n {
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
+  color: var(--teal-deep);
+}
+
+/* Altura mínima para a troca de aba não fazer o modal pular de tamanho. */
+.sheet-corpo {
+  padding-top: 12px;
+  min-height: 260px;
+}
+
+/* ============================================================
+   Antes de sair
+   ============================================================ */
+.pre-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.pre-topo label {
+  margin: 0;
+}
+.pre-progresso {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+.pre-progresso.pronto {
+  color: var(--st-reserv);
+  font-weight: 600;
+}
+.pre-progresso .barra {
+  width: 60px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.pre-progresso .fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--st-reserv);
+  transition: width 0.3s ease;
+}
+
+.pre-grupo {
+  margin-top: 12px;
+}
+.pre-grupo-tit {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+}
+
+.pre-linha {
+  display: grid;
+  grid-template-columns: 24px 1fr 96px 26px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 3px;
+}
+.pre-linha .check-box {
+  width: 22px;
+  height: 22px;
+}
+.pre-linha.feita .check-box {
+  background: var(--st-reserv);
+  border-color: var(--st-reserv);
+}
+
+/* Os campos herdam a moldura de `.field input`; aqui só o tamanho muda.
+   `width: auto` seria o erro: são células de grade, e a grade manda. */
+.pre-linha .pre-txt,
+.pre-linha .pre-quem,
+.pre-nova {
+  padding: 7px 9px;
+  font-size: 14px;
+  min-width: 0;
+}
+.pre-linha.feita .pre-txt {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+.pre-linha .pre-quem {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.pre-nova {
+  margin-left: 31px;
+  width: calc(100% - 31px);
+  font-size: 13px;
+  border-style: dashed;
+  background: transparent;
+}
+.pre-nova::placeholder {
+  color: var(--ink-faint);
+}
+
+.pre-pendencias {
+  margin-top: 16px;
+  padding: 11px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.pre-pendencias .tit {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 7px;
+}
+.pre-pendencias .linha {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+.pre-pendencias .linha b {
+  flex: none;
+  min-width: 74px;
+  color: var(--ink);
+}
+.pre-pendencias .linha span {
+  color: var(--ink-soft);
+}
+
+/* ============================================================
    Diário em Markdown
    ============================================================ */
 .diario-topo {
@@ -2099,6 +2290,13 @@ a {
   .check-linha {
     grid-template-columns: 24px 1fr auto 62px 24px;
     gap: 6px;
+  }
+
+  /* Mesma ideia na lista de antes de sair: o nome da tarefa é o que precisa
+     de espaço; "quem" costuma ser um primeiro nome curto. */
+  .pre-linha {
+    grid-template-columns: 22px 1fr 74px 22px;
+    gap: 5px;
   }
 
   /* O botao flutuante "+" fica por cima do conteudo. Sem este respiro no

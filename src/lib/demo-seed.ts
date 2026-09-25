@@ -31,6 +31,8 @@ type ViagemDemo = {
   budgetCents: number | null;
   people?: number;
   note: string;
+  /** Tarefas de antes de sair, para a demo mostrar o módulo. */
+  tarefas?: Array<{ label: string; done: boolean; assignee?: string; when: "ANTES" | "VESPERA" | "SAIDA" }>;
   items?: Array<{
     label: string;
     done: boolean;
@@ -67,6 +69,16 @@ function viagens(): ViagemDemo[] {
 
 > A trilha do Atalaia tem vaga limitada por dia — dá para agendar no ICMBio
 > assim que a passagem sai.`,
+      tarefas: [
+        { label: "Combinar quem cuida dos gatos", done: true, assignee: "Duda", when: "ANTES" },
+        { label: "Levar o Duque para a casa da mãe", done: false, assignee: "Duda", when: "VESPERA" },
+        { label: "Deixar ração e areia suficientes", done: true, when: "ANTES" },
+        { label: "Deixar a chave com a vizinha", done: false, assignee: "Dona Marta", when: "ANTES" },
+        { label: "Separar documentos e carregadores", done: false, when: "VESPERA" },
+        { label: "Fechar o registro de água", done: false, when: "SAIDA" },
+        { label: "Fechar o gás", done: false, when: "SAIDA" },
+        { label: "Tirar aparelhos da tomada", done: false, when: "SAIDA" },
+      ],
       items: [
         // Entrada + parcelamento: R$ 500 na hora e o resto em 6x de R$ 280.
         {
@@ -157,7 +169,7 @@ export async function semearDemo(
     },
   });
 
-  for (const { items, ano, ida, volta, ...v } of viagens()) {
+  for (const { items, tarefas, ano, ida, volta, ...v } of viagens()) {
     await prisma.trip.create({
       data: {
         ...v,
@@ -175,6 +187,9 @@ export async function semearDemo(
                   : null,
               })),
             }
+          : undefined,
+        preTasks: tarefas
+          ? { create: tarefas.map((t, position) => ({ ...t, position })) }
           : undefined,
       },
     });

@@ -4,6 +4,7 @@ import { getCurrentUser, getMembership } from "@/lib/auth-helpers";
 import { tripCreateSchema } from "@/lib/validation";
 import { toTripDTO, tripInclude } from "@/lib/trip-dto";
 import { CHECKLIST_PADRAO } from "@/lib/checklist-defaults";
+import { PRE_VIAGEM_PADRAO } from "@/lib/pre-viagem-defaults";
 
 type Params = { params: Promise<{ boardId: string }> };
 
@@ -64,6 +65,12 @@ export async function POST(req: Request, { params }: Params) {
       boardId,
       items: {
         create: CHECKLIST_PADRAO.map((label, position) => ({ label, position })),
+      },
+      // A rotina de fechar a casa é quase igual em toda viagem: vem pronta
+      // para a pessoa apagar o que não se aplica, em vez de lembrar de tudo
+      // do zero na véspera.
+      preTasks: {
+        create: PRE_VIAGEM_PADRAO.map((t, position) => ({ ...t, position })),
       },
     },
     include: tripInclude,

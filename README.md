@@ -25,6 +25,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **Antes de sair**: checklist de casa e pets, agrupado por momento (com antecedência, na véspera, na hora de sair), com responsável por tarefa e um resumo de quem ficou com o quê. Toda viagem nova nasce com a rotina preenchida.
 - **Diário em Markdown**: as anotações aceitam títulos, listas, tarefas, destaques e links, com abas de escrever e ler. O texto é guardado como Markdown puro — continua legível fora do app e sem prender o conteúdo a nenhum editor.
 - **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
 - **Parcelamento com entrada**: um item do checklist distingue *contratado* de *pago*. "R$ 500 de entrada + 6x de R$ 280, 2 pagas" mostra quanto já saiu, quanto falta e quando vence a próxima. O app soma isso em "já pago" e "ainda vai sair".
@@ -56,8 +57,14 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - `Board` — um quadro de viagens.
 - `BoardMember` — vínculo usuário↔quadro com papel (`OWNER` / `EDITOR`).
 - `Trip` — uma viagem, pertence a um quadro.
-- `ChecklistItem` — um item do checklist (rótulo, contratado ou não, valor total, parcelamento, quem pagou).
+- `ChecklistItem` — um item do checklist de gastos (rótulo, contratado ou não, valor total, parcelamento, quem pagou).
+- `PreTripTask` — uma tarefa de antes de sair (rótulo, feita, responsável, momento).
 - `RateHit` — registro de tentativa, para o limite de taxa no cadastro.
+
+> **Por que `PreTripTask` não é um `ChecklistItem` com um tipo.** O checklist
+> de gastos existe para dinheiro: valor, entrada, parcelas, quem pagou. Numa
+> tarefa como "fechar o gás" esses sete campos ficariam nulos em toda linha, e
+> o que a tarefa precisa — responsável e momento — o outro modelo não tem.
 
 > **`done` significa CONTRATADO, não pago.** São coisas diferentes: passagem
 > em 6x está contratada no primeiro dia e paga só no sexto mês. O parcelamento
@@ -162,6 +169,10 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 | `PATCH` | `/api/trips/:id` | Atualiza viagem |
 | `DELETE` | `/api/trips/:id` | Exclui viagem |
 | `GET` | `/api/cron/reseed-demo` | Repõe a conta de demonstração (só o cron da Vercel) |
+| `GET` | `/api/trips/:id/tasks` | Tarefas de antes de sair |
+| `POST` | `/api/trips/:id/tasks` | Adiciona tarefa |
+| `PATCH` | `/api/tasks/:id` | Marca/renomeia/atribui uma tarefa |
+| `DELETE` | `/api/tasks/:id` | Remove uma tarefa |
 | `GET` | `/api/trips/:id/items` | Itens do checklist |
 | `POST` | `/api/trips/:id/items` | Adiciona item ao checklist |
 | `PATCH` | `/api/items/:id` | Marca/renomeia/lança o valor de um item |
@@ -209,7 +220,7 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ```bash
 npm run typecheck   # tipos
 npm run lint        # ESLint
-npm test            # 127 testes
+npm test            # 139 testes
 ```
 
 Os testes cobrem o que quebraria em silêncio:
@@ -221,6 +232,8 @@ Os testes cobrem o que quebraria em silêncio:
 - **acerto de contas** — as invariantes de que os saldos somam zero e de que
   as transferências sugeridas zeram todo mundo (`acerto`)
 - **validação** — os schemas, incluindo a regressão do `null` virando `0`
+- **antes de sair** (`pre-viagem`) — agrupamento por momento, progresso (lista
+  vazia não é "tudo pronto") e o resumo de pendências por pessoa
 - **Markdown** (`markdown`) — a limpeza da marcação para o preview do cartão,
   com a garantia de que texto sem formatação passa intacto
 - **isolamento entre quadros** (`access`) — o mais importante: roda contra um

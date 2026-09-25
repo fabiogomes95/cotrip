@@ -1,5 +1,5 @@
-import type { ChecklistItem, Trip } from "@prisma/client";
-import type { ChecklistItemDTO, TripDTO } from "@/types";
+import type { ChecklistItem, PreTripTask, Trip } from "@prisma/client";
+import type { ChecklistItemDTO, PreTaskDTO, PreTripWhen, TripDTO } from "@/types";
 import type { Status } from "@/lib/status";
 import { paraISO } from "@/lib/datas";
 
@@ -10,9 +10,25 @@ import { paraISO } from "@/lib/datas";
  */
 export const tripInclude = {
   items: { orderBy: { position: "asc" } },
-} satisfies { items: { orderBy: { position: "asc" } } };
+  preTasks: { orderBy: { position: "asc" } },
+} satisfies {
+  items: { orderBy: { position: "asc" } };
+  preTasks: { orderBy: { position: "asc" } };
+};
 
-type TripWithItems = Trip & { items: ChecklistItem[] };
+type TripWithItems = Trip & { items: ChecklistItem[]; preTasks: PreTripTask[] };
+
+export function toPreTaskDTO(t: PreTripTask): PreTaskDTO {
+  return {
+    id: t.id,
+    tripId: t.tripId,
+    label: t.label,
+    done: t.done,
+    assignee: t.assignee,
+    when: t.when as PreTripWhen,
+    position: t.position,
+  };
+}
 
 export function toItemDTO(i: ChecklistItem): ChecklistItemDTO {
   return {
@@ -49,5 +65,6 @@ export function toTripDTO(t: TripWithItems): TripDTO {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     items: t.items.map(toItemDTO),
+    preTasks: t.preTasks.map(toPreTaskDTO),
   };
 }
