@@ -153,4 +153,35 @@ export const preTaskCreateSchema = z.object({
 
 export const preTaskUpdateSchema = preTaskCreateSchema.partial();
 
+// --- Atividades no destino ---
+export const activityCreateSchema = z.object({
+  label: z.string().trim().min(1, "Dê um nome à atividade").max(120),
+  contact: z.string().trim().max(200).optional().default(""),
+  whenAt: dataISO,
+  timeText: z.string().trim().max(40).optional().default(""),
+  status: z.enum(["IDEIA", "AGENDADO", "FEITO"]).optional().default("IDEIA"),
+  note: z.string().trim().max(1000).optional().default(""),
+});
+export const activityUpdateSchema = activityCreateSchema.partial();
+
+// --- Gastos avulsos ---
+export const expenseCreateSchema = z.object({
+  label: z.string().trim().min(1, "Dê um nome ao gasto").max(120),
+  category: z
+    .enum(["TRANSPORTE", "ALIMENTACAO", "PASSEIO", "COMPRAS", "OUTROS"])
+    .optional()
+    .default("OUTROS"),
+  // Obrigatório e maior que zero: gasto sem valor não é gasto, é anotação —
+  // e anotação já tem lugar no diário.
+  totalCents: z.coerce
+    .number()
+    .int()
+    .min(1, "Informe quanto foi")
+    .max(100_000_000_00),
+  spentOn: dataISO,
+  paidById: z.union([z.null(), z.string().cuid()]).optional(),
+  note: z.string().trim().max(1000).optional().default(""),
+});
+export const expenseUpdateSchema = expenseCreateSchema.partial();
+
 export type TripInput = z.infer<typeof tripCreateSchema>;

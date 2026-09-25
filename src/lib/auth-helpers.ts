@@ -4,6 +4,8 @@ import { auth } from "@/auth";
    para poderem ser testadas sem simular login. Este arquivo continua sendo o
    ponto de import das rotas — elas não precisam saber dessa separação. */
 export {
+  getActivityAccess,
+  getExpenseAccess,
   getItemAccess,
   getMembership,
   getPreTaskAccess,

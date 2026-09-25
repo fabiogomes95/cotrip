@@ -20,6 +20,12 @@ export type ItemAcerto = {
   paidById: string | null;
 };
 
+/** Gasto avulso: já vem em valor TOTAL, sem multiplicar por pessoa. */
+export type GastoAcerto = {
+  totalCents: number;
+  paidById: string | null;
+};
+
 export type Pessoa = { userId: string; name: string };
 
 export type Saldo = {
@@ -44,6 +50,7 @@ export type Transferencia = { de: string; para: string; valor: number };
  */
 export function calcularSaldos(
   items: ItemAcerto[],
+  gastos: GastoAcerto[],
   membros: Pessoa[],
   people: number,
 ): Saldo[] {
@@ -53,14 +60,21 @@ export function calcularSaldos(
   const porPessoa = new Map(membros.map((m) => [m.userId, 0]));
   let totalPago = 0;
 
-  for (const item of items) {
-    const pago = pagoCents(item) * multiplicador;
-    if (pago <= 0) continue;
-    totalPago += pago;
-    // Item pago por alguém de fora do quadro (ou sem dono) entra no total —
-    // o dinheiro saiu — mas não vira crédito de ninguém.
-    if (item.paidById && porPessoa.has(item.paidById)) {
-      porPessoa.set(item.paidById, porPessoa.get(item.paidById)! + pago);
+  /* As duas fontes entram com unidades diferentes, e essa é a parte fácil de
+     errar: o checklist guarda valor POR PESSOA (multiplica por `people`), o
+     gasto avulso já é o valor cheio da carteira (entra como está). */
+  const lancamentos: Array<{ valor: number; quem: string | null }> = [
+    ...items.map((i) => ({ valor: pagoCents(i) * multiplicador, quem: i.paidById })),
+    ...gastos.map((g) => ({ valor: g.totalCents, quem: g.paidById })),
+  ];
+
+  for (const { valor, quem } of lancamentos) {
+    if (valor <= 0) continue;
+    totalPago += valor;
+    // Pago por alguém de fora do quadro (ou sem dono) entra no total — o
+    // dinheiro saiu — mas não vira crédito de ninguém.
+    if (quem && porPessoa.has(quem)) {
+      porPessoa.set(quem, porPessoa.get(quem)! + valor);
     }
   }
 

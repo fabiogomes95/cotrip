@@ -1534,6 +1534,216 @@ a {
 }
 
 /* ============================================================
+   No destino — atividades e gastos avulsos
+   ============================================================ */
+.ativ {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 9px 10px;
+  margin-bottom: 7px;
+  background: var(--surface);
+}
+/* A borda esquerda dá a situação de relance, como nos cartões de viagem. */
+.ativ {
+  border-left: 3px solid var(--line-strong);
+}
+.ativ.s-AGENDADO {
+  border-left-color: var(--st-plan);
+}
+.ativ.s-FEITO {
+  border-left-color: var(--st-reserv);
+}
+
+.ativ-l1 {
+  display: grid;
+  grid-template-columns: auto 1fr 26px;
+  align-items: center;
+  gap: 7px;
+}
+.ativ-status {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  color: var(--ink-faint);
+}
+.ativ-status.s-AGENDADO {
+  background: color-mix(in srgb, var(--st-plan) 18%, transparent);
+  color: var(--st-plan);
+}
+.ativ-status.s-FEITO {
+  background: color-mix(in srgb, var(--st-reserv) 18%, transparent);
+  color: var(--st-reserv);
+}
+
+.ativ-l2 {
+  display: grid;
+  grid-template-columns: 1fr 138px 96px;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ativ .ativ-txt,
+.ativ-l2 input {
+  padding: 6px 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+.ativ .ativ-txt {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ativ-l2 input {
+  font-size: 12.5px;
+}
+
+/* O telefone vira link de discagem — o ponto é conseguir ligar para o
+   barqueiro estando na praia, com uma mão só. */
+.ativ-tel {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--teal-deep);
+  text-decoration: none;
+}
+.ativ-tel::before {
+  content: "☎ ";
+}
+.ativ-tel:hover {
+  text-decoration: underline;
+}
+
+/* ---- gastos avulsos ---- */
+.gasto-total {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.gasto-fatias {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.gasto-fatias .fatia {
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+}
+.gasto-fatias .nome {
+  color: var(--ink-soft);
+}
+.gasto-fatias .barra {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.gasto-fatias .fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink-faint);
+}
+.gasto-fatias .valor {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink);
+}
+.gasto-nota {
+  margin: 8px 0 0;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* Cada categoria tem sua cor, a mesma na barra e na etiqueta da linha. */
+.fill.c-TRANSPORTE,
+.gasto-tag.c-TRANSPORTE {
+  background: var(--teal);
+}
+.fill.c-ALIMENTACAO,
+.gasto-tag.c-ALIMENTACAO {
+  background: var(--sun);
+}
+.fill.c-PASSEIO,
+.gasto-tag.c-PASSEIO {
+  background: var(--st-plan);
+}
+.fill.c-COMPRAS,
+.gasto-tag.c-COMPRAS {
+  background: var(--st-feita);
+}
+.fill.c-OUTROS,
+.gasto-tag.c-OUTROS {
+  background: var(--st-ideia);
+}
+
+.gasto-linha {
+  display: grid;
+  grid-template-columns: 34px 1fr 86px 26px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+.gasto-linha:has(.gasto-quem) {
+  grid-template-columns: 34px 1fr 74px 86px 26px;
+}
+.gasto-tag {
+  padding: 3px 0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.gasto-linha .gasto-txt,
+.gasto-linha .gasto-val,
+.gasto-linha .gasto-quem {
+  padding: 6px 8px;
+  font-size: 13.5px;
+  min-width: 0;
+}
+.gasto-linha .gasto-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.gasto-linha .gasto-quem {
+  font-size: 12px;
+}
+
+.gasto-novo {
+  display: grid;
+  grid-template-columns: 118px 1fr 84px auto;
+  gap: 6px;
+  margin-top: 10px;
+}
+.gasto-novo select,
+.gasto-novo input {
+  padding: 8px 9px;
+  font-size: 13.5px;
+  min-width: 0;
+}
+
+/* ============================================================
    Antes de sair
    ============================================================ */
 .pre-topo {
@@ -2297,6 +2507,32 @@ a {
   .pre-linha {
     grid-template-columns: 22px 1fr 74px 22px;
     gap: 5px;
+  }
+
+  /* No destino: as linhas de três e quatro colunas viram duas, empilhando.
+     Numa tela de 390px, cinco colunas deixariam cada campo com 60px. */
+  .ativ-l2 {
+    grid-template-columns: 1fr;
+  }
+  .gasto-novo {
+    grid-template-columns: 1fr 84px;
+  }
+  .gasto-novo select {
+    grid-column: 1 / -1;
+  }
+  .gasto-novo button {
+    grid-column: 1 / -1;
+  }
+  .gasto-linha {
+    grid-template-columns: 30px 1fr 76px 22px;
+  }
+  .gasto-linha:has(.gasto-quem) {
+    grid-template-columns: 30px 1fr 64px 76px 22px;
+    gap: 4px;
+  }
+  .gasto-fatias .fatia {
+    grid-template-columns: 70px 1fr auto;
+    gap: 7px;
   }
 
   /* O botao flutuante "+" fica por cima do conteudo. Sem este respiro no

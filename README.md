@@ -25,6 +25,7 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - **Viagens** com destino, época, ano (ou "algum dia"), status, orçamento por pessoa e anotações.
 - **Linha do tempo por ano** + seção "Algum dia" para ideias sem data.
 - **Status em um toque** direto no card, filtros por status e resumo (total, reservadas/feitas, orçamento estimado).
+- **No destino**: passeios com o contato de quem organiza (o telefone vira link de discagem) e um registro corrido dos gastos do dia a dia, somados por categoria — o módulo existe para tornar visível o dinheiro que some em muitas corridas pequenas.
 - **Antes de sair**: checklist de casa e pets, agrupado por momento (com antecedência, na véspera, na hora de sair), com responsável por tarefa e um resumo de quem ficou com o quê. Toda viagem nova nasce com a rotina preenchida.
 - **Diário em Markdown**: as anotações aceitam títulos, listas, tarefas, destaques e links, com abas de escrever e ler. O texto é guardado como Markdown puro — continua legível fora do app e sem prender o conteúdo a nenhum editor.
 - **Datas exatas e contagem regressiva**: além da "época" em texto livre, ida e volta de verdade — o cartão passa a mostrar "12 a 19 de nov de 2026 · faltam 48 dias · 7 noites".
@@ -59,6 +60,8 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 - `Trip` — uma viagem, pertence a um quadro.
 - `ChecklistItem` — um item do checklist de gastos (rótulo, contratado ou não, valor total, parcelamento, quem pagou).
 - `PreTripTask` — uma tarefa de antes de sair (rótulo, feita, responsável, momento).
+- `Activity` — um passeio no destino (rótulo, contato, quando, situação).
+- `Expense` — um gasto avulso da viagem (rótulo, categoria, valor total, quem pagou).
 - `RateHit` — registro de tentativa, para o limite de taxa no cadastro.
 
 > **Por que `PreTripTask` não é um `ChecklistItem` com um tipo.** O checklist
@@ -72,6 +75,15 @@ CoTrip é um quadro compartilhado para organizar viagens ao longo dos próximos 
 > `installments`, `paidInstallments`, `firstDueDate`) em vez de uma tabela de
 > parcelas — tudo que o app precisa é derivável deles. A entrada fica separada
 > do valor das parcelas porque quase nunca é igual a uma delas.
+
+> **Dinheiro mora em dois lugares, com unidades diferentes.**
+> `ChecklistItem` é o que se planeja e paga antes (passagem, hospedagem), em
+> valores **por pessoa**. `Expense` é o que se gasta no destino no dia a dia
+> (Uber, comida), em valores **totais**. A divisão segue como a pessoa pensa —
+> antes da viagem × durante — e a unidade difere porque cada um é registrado
+> de um jeito: orçamento se pensa por cabeça, recibo de Uber vem com o valor
+> cheio. O acerto de contas soma os dois, e é lá que a diferença de unidade
+> precisa de atenção (ver `calcularSaldos`).
 
 > **Dinheiro é sempre guardado em centavos**, como inteiro (`budgetCents`,
 > `amountCents`). O nome do campo carrega a unidade de propósito: ponto
@@ -169,6 +181,10 @@ Todas as rotas exigem sessão, exceto o cadastro. O corpo é JSON.
 | `PATCH` | `/api/trips/:id` | Atualiza viagem |
 | `DELETE` | `/api/trips/:id` | Exclui viagem |
 | `GET` | `/api/cron/reseed-demo` | Repõe a conta de demonstração (só o cron da Vercel) |
+| `GET`/`POST` | `/api/trips/:id/activities` | Passeios do destino |
+| `PATCH`/`DELETE` | `/api/activities/:id` | Edita/remove um passeio |
+| `GET`/`POST` | `/api/trips/:id/expenses` | Gastos avulsos |
+| `PATCH`/`DELETE` | `/api/expenses/:id` | Edita/remove um gasto |
 | `GET` | `/api/trips/:id/tasks` | Tarefas de antes de sair |
 | `POST` | `/api/trips/:id/tasks` | Adiciona tarefa |
 | `PATCH` | `/api/tasks/:id` | Marca/renomeia/atribui uma tarefa |
@@ -220,7 +236,7 @@ entrega; por isso o `directUrl` no `schema.prisma`.
 ```bash
 npm run typecheck   # tipos
 npm run lint        # ESLint
-npm test            # 139 testes
+npm test            # 153 testes
 ```
 
 Os testes cobrem o que quebraria em silêncio:
@@ -232,6 +248,8 @@ Os testes cobrem o que quebraria em silêncio:
 - **acerto de contas** — as invariantes de que os saldos somam zero e de que
   as transferências sugeridas zeram todo mundo (`acerto`)
 - **validação** — os schemas, incluindo a regressão do `null` virando `0`
+- **gastos do destino** (`gastos`) — soma por categoria ordenada pelo maior,
+  média por dia e por pessoa
 - **antes de sair** (`pre-viagem`) — agrupamento por momento, progresso (lista
   vazia não é "tudo pronto") e o resumo de pendências por pessoa
 - **Markdown** (`markdown`) — a limpeza da marcação para o preview do cartão,

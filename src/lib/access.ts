@@ -40,6 +40,28 @@ export async function getTripAccess(tripId: string, userId: string) {
   return { trip, membership };
 }
 
+/** Mesma ideia, partindo de uma atividade. */
+export async function getActivityAccess(activityId: string, userId: string) {
+  const activity = await prisma.activity.findUnique({ where: { id: activityId } });
+  if (!activity) return null;
+
+  const access = await getTripAccess(activity.tripId, userId);
+  if (!access) return null;
+
+  return { activity, ...access };
+}
+
+/** Mesma ideia, partindo de um gasto avulso. */
+export async function getExpenseAccess(expenseId: string, userId: string) {
+  const expense = await prisma.expense.findUnique({ where: { id: expenseId } });
+  if (!expense) return null;
+
+  const access = await getTripAccess(expense.tripId, userId);
+  if (!access) return null;
+
+  return { expense, ...access };
+}
+
 /** Mesma ideia, partindo de uma tarefa de antes de sair. */
 export async function getPreTaskAccess(taskId: string, userId: string) {
   const task = await prisma.preTripTask.findUnique({ where: { id: taskId } });

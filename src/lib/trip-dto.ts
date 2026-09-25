@@ -1,5 +1,14 @@
-import type { ChecklistItem, PreTripTask, Trip } from "@prisma/client";
-import type { ChecklistItemDTO, PreTaskDTO, PreTripWhen, TripDTO } from "@/types";
+import type { Activity, ChecklistItem, Expense, PreTripTask, Trip } from "@prisma/client";
+import type {
+  ActivityDTO,
+  ActivityStatus,
+  ChecklistItemDTO,
+  ExpenseCategory,
+  ExpenseDTO,
+  PreTaskDTO,
+  PreTripWhen,
+  TripDTO,
+} from "@/types";
 import type { Status } from "@/lib/status";
 import { paraISO } from "@/lib/datas";
 
@@ -11,12 +20,48 @@ import { paraISO } from "@/lib/datas";
 export const tripInclude = {
   items: { orderBy: { position: "asc" } },
   preTasks: { orderBy: { position: "asc" } },
+  activities: { orderBy: { position: "asc" } },
+  expenses: { orderBy: { createdAt: "asc" } },
 } satisfies {
   items: { orderBy: { position: "asc" } };
   preTasks: { orderBy: { position: "asc" } };
+  activities: { orderBy: { position: "asc" } };
+  expenses: { orderBy: { createdAt: "asc" } };
 };
 
-type TripWithItems = Trip & { items: ChecklistItem[]; preTasks: PreTripTask[] };
+type TripWithItems = Trip & {
+  items: ChecklistItem[];
+  preTasks: PreTripTask[];
+  activities: Activity[];
+  expenses: Expense[];
+};
+
+export function toActivityDTO(a: Activity): ActivityDTO {
+  return {
+    id: a.id,
+    tripId: a.tripId,
+    label: a.label,
+    contact: a.contact,
+    whenAt: a.whenAt ? paraISO(a.whenAt) : null,
+    timeText: a.timeText,
+    status: a.status as ActivityStatus,
+    note: a.note,
+    position: a.position,
+  };
+}
+
+export function toExpenseDTO(e: Expense): ExpenseDTO {
+  return {
+    id: e.id,
+    tripId: e.tripId,
+    label: e.label,
+    category: e.category as ExpenseCategory,
+    totalCents: e.totalCents,
+    spentOn: e.spentOn ? paraISO(e.spentOn) : null,
+    paidById: e.paidById,
+    note: e.note,
+  };
+}
 
 export function toPreTaskDTO(t: PreTripTask): PreTaskDTO {
   return {
@@ -66,5 +111,7 @@ export function toTripDTO(t: TripWithItems): TripDTO {
     updatedAt: t.updatedAt.toISOString(),
     items: t.items.map(toItemDTO),
     preTasks: t.preTasks.map(toPreTaskDTO),
+    activities: t.activities.map(toActivityDTO),
+    expenses: t.expenses.map(toExpenseDTO),
   };
 }

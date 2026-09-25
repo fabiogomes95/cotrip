@@ -35,6 +35,40 @@ export interface PreTaskDTO {
   position: number;
 }
 
+export type ActivityStatus = "IDEIA" | "AGENDADO" | "FEITO";
+
+export interface ActivityDTO {
+  id: string;
+  tripId: string;
+  label: string;
+  /** Nome e telefone de quem organiza, em texto livre. */
+  contact: string;
+  whenAt: string | null;
+  timeText: string;
+  status: ActivityStatus;
+  note: string;
+  position: number;
+}
+
+export type ExpenseCategory =
+  | "TRANSPORTE"
+  | "ALIMENTACAO"
+  | "PASSEIO"
+  | "COMPRAS"
+  | "OUTROS";
+
+export interface ExpenseDTO {
+  id: string;
+  tripId: string;
+  label: string;
+  category: ExpenseCategory;
+  /** TOTAL em centavos, não por pessoa — diferente do checklist de gastos. */
+  totalCents: number;
+  spentOn: string | null;
+  paidById: string | null;
+  note: string;
+}
+
 export interface TripDTO {
   id: string;
   boardId: string;
@@ -54,6 +88,8 @@ export interface TripDTO {
   updatedAt: string;
   items: ChecklistItemDTO[];
   preTasks: PreTaskDTO[];
+  activities: ActivityDTO[];
+  expenses: ExpenseDTO[];
 }
 
 export interface BoardSummary {

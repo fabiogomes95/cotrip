@@ -31,6 +31,10 @@ type ViagemDemo = {
   budgetCents: number | null;
   people?: number;
   note: string;
+  /** Passeios com contato, para a demo mostrar o módulo do destino. */
+  passeios?: Array<{ label: string; contact?: string; timeText?: string; status: "IDEIA" | "AGENDADO" | "FEITO" }>;
+  /** Gastos avulsos do dia a dia. */
+  gastos?: Array<{ label: string; category: "TRANSPORTE" | "ALIMENTACAO" | "PASSEIO" | "COMPRAS" | "OUTROS"; totalCents: number }>;
   /** Tarefas de antes de sair, para a demo mostrar o módulo. */
   tarefas?: Array<{ label: string; done: boolean; assignee?: string; when: "ANTES" | "VESPERA" | "SAIDA" }>;
   items?: Array<{
@@ -69,6 +73,21 @@ function viagens(): ViagemDemo[] {
 
 > A trilha do Atalaia tem vaga limitada por dia — dá para agendar no ICMBio
 > assim que a passagem sai.`,
+      passeios: [
+        { label: "Passeio de barco pela ilha", contact: "Zé do Barco · (81) 98888-1234", timeText: "9h", status: "AGENDADO" },
+        { label: "Mergulho batismo", contact: "Atlantis Divers · (81) 99777-4321", timeText: "manhã", status: "IDEIA" },
+        { label: "Trilha do Atalaia", contact: "ICMBio — agendar no site", timeText: "fim da tarde", status: "IDEIA" },
+      ],
+      // Muitos gastos pequenos de transporte: é o caso que o módulo existe
+      // para tornar visível.
+      gastos: [
+        { label: "Táxi do aeroporto", category: "TRANSPORTE", totalCents: 9000 },
+        { label: "Buggy até a Baía dos Porcos", category: "TRANSPORTE", totalCents: 12000 },
+        { label: "Corrida até o Sancho", category: "TRANSPORTE", totalCents: 4500 },
+        { label: "Almoço no Porto", category: "ALIMENTACAO", totalCents: 18000 },
+        { label: "Jantar na Vila", category: "ALIMENTACAO", totalCents: 22000 },
+        { label: "Lembrancinhas", category: "COMPRAS", totalCents: 8000 },
+      ],
       tarefas: [
         { label: "Combinar quem cuida dos gatos", done: true, assignee: "Duda", when: "ANTES" },
         { label: "Levar o Duque para a casa da mãe", done: false, assignee: "Duda", when: "VESPERA" },
@@ -169,7 +188,7 @@ export async function semearDemo(
     },
   });
 
-  for (const { items, tarefas, ano, ida, volta, ...v } of viagens()) {
+  for (const { items, tarefas, passeios, gastos, ano, ida, volta, ...v } of viagens()) {
     await prisma.trip.create({
       data: {
         ...v,
@@ -191,6 +210,10 @@ export async function semearDemo(
         preTasks: tarefas
           ? { create: tarefas.map((t, position) => ({ ...t, position })) }
           : undefined,
+        activities: passeios
+          ? { create: passeios.map((a, position) => ({ ...a, position })) }
+          : undefined,
+        expenses: gastos ? { create: gastos } : undefined,
       },
     });
   }

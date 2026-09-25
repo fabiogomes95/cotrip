@@ -23,6 +23,7 @@ model User {
   createdAt    DateTime        @default(now())
   memberships  BoardMember[]
   paidItems    ChecklistItem[]
+  paidExpenses Expense[]
 }
 
 model Board {
@@ -84,6 +85,8 @@ model Trip {
   updatedAt   DateTime        @updatedAt
   items       ChecklistItem[]
   preTasks    PreTripTask[]
+  activities  Activity[]
+  expenses    Expense[]
 
   @@index([boardId])
 }
@@ -110,6 +113,7 @@ model ChecklistItem {
    * tivesse valor ou data propria.
    */
   /**
+   * /**
    * /**
    * /* Entrada: o pedaco pago na hora da compra. O que sobra (amountCents menos
    * a entrada) e que se divide em `installments`. Fica separado do valor das
@@ -181,6 +185,85 @@ model PreTripTask {
   createdAt DateTime @default(now())
 
   @@index([tripId])
+}
+
+enum ActivityStatus {
+  IDEIA
+  AGENDADO
+  FEITO
+}
+
+/// Um passeio ou atividade no destino.
+///
+/// O que esta tabela guarda de mais valioso e o CONTATO: o telefone do
+/// barqueiro, o nome de quem aluga o quadriciclo. Nao tem campo de dinheiro
+/// de proposito — ver a nota em Expense sobre onde o dinheiro mora.
+model Activity {
+  id     String @id @default(cuid())
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId String
+
+  label   String
+  /// Nome e telefone de quem organiza, em texto livre: e o que a pessoa
+  /// copia de um WhatsApp e cola aqui.
+  contact String @default("")
+
+  whenAt   DateTime?      @db.Date
+  /// Horario em texto: "9h", "de manha", "no fim da tarde". Raramente se
+  /// sabe a hora exata de um passeio de barco, e "de manha" e informacao
+  /// suficiente — uma coluna de hora obrigaria a inventar precisao.
+  timeText String         @default("")
+  status   ActivityStatus @default(IDEIA)
+  note     String         @default("")
+  position Int            @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+}
+
+enum ExpenseCategory {
+  TRANSPORTE
+  ALIMENTACAO
+  PASSEIO
+  COMPRAS
+  OUTROS
+}
+
+/// Um gasto avulso feito durante a viagem.
+///
+/// Dinheiro no app mora em dois lugares, com papeis distintos:
+///
+///   ChecklistItem — o que se PLANEJA e paga antes (passagem, hospedagem),
+///                   em valores POR PESSOA
+///   Expense       — o que se gasta NO destino, no dia a dia (Uber, comida),
+///                   em valores TOTAIS
+///
+/// A divisao segue como a pessoa pensa: antes da viagem x durante. E a
+/// unidade difere porque cada um e registrado de um jeito: orcamento se
+/// pensa por cabeca, recibo de Uber vem com o valor cheio.
+model Expense {
+  id     String @id @default(cuid())
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId String
+
+  label      String
+  category   ExpenseCategory @default(OUTROS)
+  /// TOTAL que saiu da carteira, em centavos — nao por pessoa. Um Uber de
+  /// R$ 40 dividido entre duas pessoas e 4000 aqui.
+  totalCents Int
+  spentOn    DateTime?       @db.Date
+
+  /// Quem bancou, para o acerto de contas.
+  paidBy   User?   @relation(fields: [paidById], references: [id], onDelete: SetNull)
+  paidById String?
+
+  note String @default("")
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+  @@index([paidById])
 }
 
 model Invitation {
