@@ -1,0 +1,85 @@
+// CoTrip — schema do banco
+// Multi-tenant com compartilhamento: viagens (Trip) pertencem a um quadro (Board),
+// e cada quadro tem membros (BoardMember). Convites por email (Invitation).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  memberships  BoardMember[]
+}
+
+model Board {
+  id          String        @id @default(cuid())
+  name        String
+  createdAt   DateTime      @default(now())
+  members     BoardMember[]
+  trips       Trip[]
+  invitations Invitation[]
+}
+
+enum Role {
+  OWNER
+  EDITOR
+}
+
+model BoardMember {
+  id        String   @id @default(cuid())
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      Role     @default(EDITOR)
+  createdAt DateTime @default(now())
+
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
+enum TripStatus {
+  IDEIA
+  PLANEJANDO
+  RESERVADO
+  FEITA
+}
+
+model Trip {
+  id        String     @id @default(cuid())
+  board     Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId   String
+  dest      String
+  whenText  String     @default("") // época em texto livre: "Julho", "Carnaval"...
+  year      Int        @default(0) // 0 = "algum dia" (sem data definida)
+  status    TripStatus @default(IDEIA)
+  budget    Int? // orçamento estimado por pessoa (R$), opcional
+  note      String     @default("")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([boardId])
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  board      Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId    String
+  email      String
+  role       Role      @default(EDITOR)
+  token      String    @unique @default(cuid())
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  @@index([email])
+  @@index([boardId])
+}

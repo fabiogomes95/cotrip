@@ -1,0 +1,19 @@
+# Postgres local para desenvolvimento.
+# Suba com:  docker compose up -d
+# A DATABASE_URL correspondente já está no .env.example.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cotrip-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cotrip
+      POSTGRES_PASSWORD: cotrip
+      POSTGRES_DB: cotrip
+    ports:
+      - "5432:5432"
+    volumes:
+      - cotrip-pgdata:/var/lib/postgresql/data
+
+volumes:
+  cotrip-pgdata:
