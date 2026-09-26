@@ -1,12 +1,18 @@
 "use client";
 
-import type { BoardSummary, ChecklistItemDTO, MemberDTO, Role, TripDTO } from "@/types";
+import type {
+  BoardSummary,
+  ChecklistItemDTO,
+  MemberDTO,
+  Role,
+  TripDTO,
+} from "@/types";
 import type { Status } from "@/lib/status";
 import { Arquivo } from "./Arquivo";
 import { ProximaViagem } from "./ProximaViagem";
 import { proximaViagem } from "@/lib/proxima";
 import { NewBoardModal } from "./NewBoardModal";
-import { STATUSES, STATUS_LABEL, nextStatus } from "@/lib/status";
+import { STATUSES, STATUS_COR, STATUS_LABEL, nextStatus } from "@/lib/status";
 import { BotaoTema } from "./BotaoTema";
 import { ShareModal } from "./ShareModal";
 import { TripModal } from "./TripModal";
@@ -16,10 +22,6 @@ import { totalAPagar, totalPago } from "@/lib/checklist";
 import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-
-
-
 
 const CUR = new Date().getFullYear();
 const BASE_YEARS = [CUR, CUR + 1, CUR + 2, CUR + 3];
@@ -183,7 +185,9 @@ export function BoardApp({
           ? t
           : {
               ...t,
-              items: t.items.map((i) => (i.id === item.id ? { ...i, done } : i)),
+              items: t.items.map((i) =>
+                i.id === item.id ? { ...i, done } : i,
+              ),
             },
       ),
     );
@@ -203,7 +207,9 @@ export function BoardApp({
   async function cycleStatus(t: TripDTO) {
     const next = nextStatus(t.status);
     // otimista
-    setTrips((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    setTrips((prev) =>
+      prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)),
+    );
     try {
       await saveTrip(t.id, { status: next });
       toast(`${t.dest} → ${STATUS_LABEL[next]}`);
@@ -248,7 +254,10 @@ export function BoardApp({
   /* A linha do tempo é sobre o que ainda vai acontecer. Viagem feita sai dela
      e desce para o bloco "Já rolou", recolhido no fim — continua acessível,
      mas para de competir por atenção com o que está por vir. */
-  const ativas = useMemo(() => trips.filter((t) => t.status !== "FEITA"), [trips]);
+  const ativas = useMemo(
+    () => trips.filter((t) => t.status !== "FEITA"),
+    [trips],
+  );
   const arquivadas = useMemo(
     () =>
       trips
@@ -338,7 +347,10 @@ export function BoardApp({
 
           <span className="spacer" />
 
-          <span className="sync-pill" title="As mudanças da equipe aparecem sozinhas">
+          <span
+            className="sync-pill"
+            title="As mudanças da equipe aparecem sozinhas"
+          >
             <span className="live" />
             ao vivo
           </span>
@@ -352,7 +364,12 @@ export function BoardApp({
             title="Compartilhar quadro"
             aria-label="Compartilhar quadro"
           >
-            <svg className="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <svg
+              className="ico"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
               <path d="M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
               <path d="M2.5 20.5a6.5 6.5 0 0 1 13 0" />
               <path d="M18 8.5v6M15 11.5h6" />
@@ -382,7 +399,9 @@ export function BoardApp({
         <section className="intro">
           <div className="kicker">
             {activeBoard.name}
-            <span className={`selo-quadro${solo ? " solo" : ""}`}>{seloQuadro}</span>
+            <span className={`selo-quadro${solo ? " solo" : ""}`}>
+              {seloQuadro}
+            </span>
           </div>
           <h2>
             {solo
@@ -393,7 +412,6 @@ export function BoardApp({
             Tira do “um dia a gente vai” e bota no papel. Cada ideia vira plano,
             vira reserva, vira lembrança.
           </p>
-
         </section>
 
         {/* O painel de destaque some quando há filtro ativo: ali a pessoa
@@ -423,7 +441,7 @@ export function BoardApp({
               aria-pressed={filter === s}
               onClick={() => setFilter(s)}
             >
-              <span className="dot" style={{ background: `var(--st-${s.toLowerCase()})` }} />
+              <span className="dot" style={{ background: STATUS_COR[s] }} />
               {STATUS_LABEL[s]}
               <span className="n">{counts[s]}</span>
             </button>
@@ -442,7 +460,9 @@ export function BoardApp({
               <div className="row">
                 <button
                   className="btn btn-primary"
-                  onClick={() => setModal({ type: "trip", trip: null, presetYear: CUR })}
+                  onClick={() =>
+                    setModal({ type: "trip", trip: null, presetYear: CUR })
+                  }
                 >
                   <span className="plus">+</span> Adicionar viagem
                 </button>
@@ -450,38 +470,12 @@ export function BoardApp({
             </div>
           ) : (
             <>
-              {years.map((y, idx) => {
-                const list = ativas
-                  .filter((t) => t.year === y)
-                  .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-                const shown = filtering
-                  ? list.filter((t) => t.status === filter)
-                  : list;
-                if (filtering && shown.length === 0) return null;
-                const isLast = idx === years.length - 1 && !hasSomeday;
-                return (
-                  <YearSection
-                    key={y}
-                    title={String(y)}
-                    someday={false}
-                    count={list.length}
-                    money={moneyForYear(list)}
-                    isLast={isLast}
-                    trips={shown}
-                    showAdd={!filtering}
-                    onAdd={() => setModal({ type: "trip", trip: null, presetYear: y })}
-                    onOpen={(t) => setModal({ type: "trip", trip: t })}
-                    onCycle={cycleStatus}
-                    onToggleItem={toggleItem}
-                    hoje={hoje}
-                  />
-                );
-              })}
-
-              {hasSomeday &&
-                (() => {
+              {/* A linha e desenhada uma vez so, aqui: marcos de ano e viagens
+                  precisam ser irmaos no mesmo grid para o fio passar por todos. */}
+              <div className="fluxo">
+                {years.map((y) => {
                   const list = ativas
-                    .filter((t) => !t.year || t.year <= 0)
+                    .filter((t) => t.year === y)
                     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
                   const shown = filtering
                     ? list.filter((t) => t.status === filter)
@@ -489,22 +483,53 @@ export function BoardApp({
                   if (filtering && shown.length === 0) return null;
                   return (
                     <YearSection
-                      key="someday"
-                      title="Algum dia"
-                      someday
+                      key={y}
+                      title={String(y)}
+                      someday={false}
                       count={list.length}
                       money={moneyForYear(list)}
-                      isLast
                       trips={shown}
                       showAdd={!filtering}
-                      onAdd={() => setModal({ type: "trip", trip: null, presetYear: 0 })}
+                      onAdd={() =>
+                        setModal({ type: "trip", trip: null, presetYear: y })
+                      }
                       onOpen={(t) => setModal({ type: "trip", trip: t })}
                       onCycle={cycleStatus}
                       onToggleItem={toggleItem}
                       hoje={hoje}
                     />
                   );
-                })()}
+                })}
+
+                {hasSomeday &&
+                  (() => {
+                    const list = ativas
+                      .filter((t) => !t.year || t.year <= 0)
+                      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+                    const shown = filtering
+                      ? list.filter((t) => t.status === filter)
+                      : list;
+                    if (filtering && shown.length === 0) return null;
+                    return (
+                      <YearSection
+                        key="someday"
+                        title="Algum dia"
+                        someday
+                        count={list.length}
+                        money={moneyForYear(list)}
+                        trips={shown}
+                        showAdd={!filtering}
+                        onAdd={() =>
+                          setModal({ type: "trip", trip: null, presetYear: 0 })
+                        }
+                        onOpen={(t) => setModal({ type: "trip", trip: t })}
+                        onCycle={cycleStatus}
+                        onToggleItem={toggleItem}
+                        hoje={hoje}
+                      />
+                    );
+                  })()}
+              </div>
 
               {/* Nada ativo, mas tem histórico: sem isto a área ficaria em
                   branco e pareceria bug. */}
@@ -560,15 +585,21 @@ export function BoardApp({
                 <div className="lab">já riscadas</div>
               </div>
               <div className="stat">
-                <div className="num">{stats.money ? formatBRL(stats.money) : "—"}</div>
+                <div className="num">
+                  {stats.money ? formatBRL(stats.money) : "—"}
+                </div>
                 <div className="lab">estimado por pessoa*</div>
               </div>
               <div className="stat">
-                <div className="num">{stats.spent ? formatBRL(stats.spent) : "—"}</div>
+                <div className="num">
+                  {stats.spent ? formatBRL(stats.spent) : "—"}
+                </div>
                 <div className="lab">já pago por pessoa</div>
               </div>
               <div className="stat">
-                <div className="num">{stats.owed ? formatBRL(stats.owed) : "—"}</div>
+                <div className="num">
+                  {stats.owed ? formatBRL(stats.owed) : "—"}
+                </div>
                 <div className="lab">ainda vai sair</div>
               </div>
             </div>
@@ -584,9 +615,9 @@ export function BoardApp({
             </>
           ) : (
             <>
-              <b>Compartilhando:</b> use “Compartilhar” e convide mais gente pelo
-              email. Vocês editam o mesmo quadro — o que uma muda, a outra vê.{" "}
-              <br />
+              <b>Compartilhando:</b> use “Compartilhar” e convide mais gente
+              pelo email. Vocês editam o mesmo quadro — o que uma muda, a outra
+              vê. <br />
             </>
           )}
           <span style={{ opacity: 0.8 }}>
@@ -606,9 +637,12 @@ export function BoardApp({
             zIndex: 40,
             boxShadow: "var(--shadow-lg)",
           }}
-          onClick={() => setModal({ type: "trip", trip: null, presetYear: CUR })}
+          onClick={() =>
+            setModal({ type: "trip", trip: null, presetYear: CUR })
+          }
         >
-          <span className="plus">+</span> <span className="lbl">Nova viagem</span>
+          <span className="plus">+</span>{" "}
+          <span className="lbl">Nova viagem</span>
         </button>
       )}
 

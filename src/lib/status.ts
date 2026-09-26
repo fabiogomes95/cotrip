@@ -18,3 +18,18 @@ export function nextStatus(s: Status): Status {
   const i = STATUSES.indexOf(s);
   return STATUSES[(i + 1) % STATUSES.length];
 }
+
+/**
+ * O token CSS da cor de cada status.
+ *
+ * Mapa explícito, e não `--st-${status.toLowerCase()}`: os nomes dos tokens
+ * são abreviados (--st-plan, --st-reserv) e o template gerava
+ * --st-planejando e --st-reservado, que não existem. Variável CSS
+ * inexistente não dá erro em lugar nenhum — a bolinha simplesmente sumia.
+ */
+export const STATUS_COR: Record<Status, string> = {
+  IDEIA: "var(--st-ideia)",
+  PLANEJANDO: "var(--st-plan)",
+  RESERVADO: "var(--st-reserv)",
+  FEITA: "var(--st-feita)",
+};

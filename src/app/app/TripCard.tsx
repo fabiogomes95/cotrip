@@ -7,16 +7,14 @@ import { STATUS_LABEL } from "@/lib/status";
 import { contagem, formatarPeriodo, noites } from "@/lib/datas";
 import { feitos, totalAPagar, totalPago } from "@/lib/checklist";
 import { formatBRL } from "@/lib/format";
-import { paraTextoSimples } from "@/lib/markdown";
+import { resumoDaNota } from "@/lib/markdown";
 import { useState } from "react";
-
 
 export function YearSection({
   title,
   someday,
   count,
   money,
-  isLast,
   trips,
   showAdd,
   onAdd,
@@ -29,7 +27,6 @@ export function YearSection({
   someday: boolean;
   count: number;
   money: string | null;
-  isLast: boolean;
   trips: TripDTO[];
   showAdd: boolean;
   onAdd: () => void;
@@ -38,49 +35,62 @@ export function YearSection({
   onToggleItem: (i: ChecklistItemDTO) => void;
   hoje: Date | null;
 }) {
+  /* Um Fragment, e não uma <section> por ano: a linha do fluxo é desenhada
+     uma vez só, no contêiner de fora, e precisa que marcos e viagens sejam
+     irmãos no mesmo grid. Aninhar cada ano num bloco próprio cortaria o fio
+     em pedaços. */
   return (
-    <section
-      className={`year${someday ? " someday" : ""}`}
-      style={isLast ? undefined : undefined}
-    >
-      <div className="rail">
-        <span className="dot" />
-      </div>
-      <div className="year-body">
-        <div className="year-head">
-          <h2>{title}</h2>
-          <span className="meta">
-            {count
-              ? `${count} ${count === 1 ? "viagem" : "viagens"}`
-              : "nada por aqui ainda"}
-            {money ? (
-              <>
-                {" · "}
-                <b>{money}</b>
-              </>
-            ) : null}
-          </span>
+    <>
+      <div className={`fluxo-ano${someday ? " someday" : ""}`}>
+        <span className="fluxo-no" aria-hidden="true" />
+        <div className="fluxo-corpo">
+          <div className="year-head">
+            <h2>{title}</h2>
+            <span className="meta">
+              {count
+                ? `${count} ${count === 1 ? "viagem" : "viagens"}`
+                : "nada por aqui ainda"}
+              {money ? (
+                <>
+                  {" · "}
+                  <b>{money}</b>
+                </>
+              ) : null}
+            </span>
+          </div>
         </div>
-        <div className="grid">
-          {trips.map((t) => (
+      </div>
+
+      {trips.map((t) => (
+        <div className="fluxo-item" key={t.id}>
+          <span className={`fluxo-no s-${t.status}`} aria-hidden="true" />
+          <div className="fluxo-corpo">
             <TripCard
-              key={t.id}
               trip={t}
               onOpen={onOpen}
               onCycle={onCycle}
               onToggleItem={onToggleItem}
               hoje={hoje}
             />
-          ))}
-          {showAdd && (
+          </div>
+        </div>
+      ))}
+
+      {showAdd && (
+        <div className="fluxo-add">
+          {/* A calha fica vazia aqui: o botão não é uma parada da viagem, é
+              um convite a criar a próxima. Pôr um nó nele daria à linha um
+              ponto que não corresponde a lugar nenhum. */}
+          <span />
+          <div className="fluxo-corpo">
             <button className="add-card" onClick={onAdd}>
               <span style={{ fontSize: "17px" }}>+</span> viagem em{" "}
               {someday ? "algum dia" : title}
             </button>
-          )}
+          </div>
         </div>
-      </div>
-    </section>
+      )}
+    </>
   );
 }
 
@@ -131,48 +141,61 @@ export function TripCard({
           <span className="sd" />
           {STATUS_LABEL[trip.status]}
         </button>
-        {quanto && <span className={`trip-conta e-${quanto.estado}`}>{quanto.txt}</span>}
+        {quanto && (
+          <span className={`trip-conta e-${quanto.estado}`}>{quanto.txt}</span>
+        )}
       </div>
 
-      {/* zona de leitura — abre a viagem */}
-      <button className="trip-open" onClick={() => onOpen(trip)}>
-        <h3 className="dest">{trip.dest || "Sem nome"}</h3>
-        <div className="trip-quando">
-          <span className="when">{when}</span>
-          {dias != null && dias > 0 && (
-            <span className="dur">
-              {dias} {dias === 1 ? "noite" : "noites"}
-            </span>
-          )}
-        </div>
-        {/* Preview sem a marcação: senão o cartão mostraria "**Dia 1**" com
-            os asteriscos à mostra. */}
-        {trip.note && <p className="note">{paraTextoSimples(trip.note)}</p>}
-      </button>
-
-      {/* zona interativa — marcar item sem abrir nada */}
-      {trip.items.length > 0 && (
-        <CardChecklist trip={trip} onToggle={onToggleItem} />
-      )}
-
-      {/* Uma linha de dinheiro, não três. O cartão tinha "3/5 · R$1.060
-          pagos · falta R$3.290", "R$4.200/pessoa" e "2 pessoas · R$8.400"
-          empilhados — o detalhe mora no modal; aqui fica o número que
-          resume. */}
-      <div className="trip-foot">
-        {trip.budgetCents && trip.budgetCents > 0 ? (
-          <span className="budget">
-            {formatBRL(trip.budgetCents * trip.people)}
-            <span className="per">
-              {trip.people > 1 ? ` · ${trip.people} pessoas` : " estimado"}
-            </span>
-          </span>
-        ) : (
-          <span className="budget empty">sem orçamento</span>
-        )}
-        <button type="button" className="edit-hint" onClick={() => onOpen(trip)}>
-          abrir →
+      {/* Corpo num invólucro próprio, e não solto dentro do <article>: no
+          fluxo o cartão fica deitado, com a capa como uma faixa à esquerda
+          que precisa ter a altura inteira. Com os filhos soltos, a capa e o
+          conteúdo seriam irmãos na mesma direção, e a faixa não
+          acompanharia a altura do texto. */}
+      <div className="trip-corpo">
+        {/* zona de leitura — abre a viagem */}
+        <button className="trip-open" onClick={() => onOpen(trip)}>
+          <h3 className="dest">{trip.dest || "Sem nome"}</h3>
+          <div className="trip-quando">
+            <span className="when">{when}</span>
+            {dias != null && dias > 0 && (
+              <span className="dur">
+                {dias} {dias === 1 ? "noite" : "noites"}
+              </span>
+            )}
+          </div>
+          {/* Preview sem a marcação: senão o cartão mostraria "**Dia 1**" com
+              os asteriscos à mostra. */}
+          {trip.note && <p className="note">{resumoDaNota(trip.note)}</p>}
         </button>
+
+        {/* zona interativa — marcar item sem abrir nada */}
+        {trip.items.length > 0 && (
+          <CardChecklist trip={trip} onToggle={onToggleItem} />
+        )}
+
+        {/* Uma linha de dinheiro, não três. O cartão tinha "3/5 · R$1.060
+            pagos · falta R$3.290", "R$4.200/pessoa" e "2 pessoas · R$8.400"
+            empilhados — o detalhe mora no modal; aqui fica o número que
+            resume. */}
+        <div className="trip-foot">
+          {trip.budgetCents && trip.budgetCents > 0 ? (
+            <span className="budget">
+              {formatBRL(trip.budgetCents * trip.people)}
+              <span className="per">
+                {trip.people > 1 ? ` · ${trip.people} pessoas` : " estimado"}
+              </span>
+            </span>
+          ) : (
+            <span className="budget empty">sem orçamento</span>
+          )}
+          <button
+            type="button"
+            className="edit-hint"
+            onClick={() => onOpen(trip)}
+          >
+            abrir →
+          </button>
+        </div>
       </div>
     </article>
   );
