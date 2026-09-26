@@ -65,6 +65,7 @@ export function contadorDaAba(id: AbaId, trip: TripDTO | null): string | null {
 export function TripModal({
   trip,
   presetYear,
+  abaInicial = "viagem",
   defaultPeople,
   membros,
   onClose,
@@ -73,6 +74,9 @@ export function TripModal({
 }: {
   trip: TripDTO | null;
   presetYear: number;
+  /** Em que aba o modal abre. O painel de viagem em curso manda direto
+      para "No destino", que e onde se lanca um gasto. */
+  abaInicial?: AbaId;
   /** Quantas pessoas a viagem nova assume: o tamanho do quadro. */
   defaultPeople: number;
   membros: MemberDTO[];
@@ -96,7 +100,7 @@ export function TripModal({
     String(trip ? trip.people : Math.max(1, defaultPeople)),
   );
   const [saving, setSaving] = useState(false);
-  const [aba, setAba] = useState<AbaId>("viagem");
+  const [aba, setAba] = useState<AbaId>(abaInicial);
   const destRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

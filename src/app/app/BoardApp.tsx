@@ -10,12 +10,14 @@ import type {
 import type { Status } from "@/lib/status";
 import { Arquivo } from "./Arquivo";
 import { ProximaViagem } from "./ProximaViagem";
+import { EmViagem } from "./EmViagem";
+import { estaEmViagem } from "@/lib/em-viagem";
 import { proximaViagem } from "@/lib/proxima";
 import { NewBoardModal } from "./NewBoardModal";
 import { STATUSES, STATUS_COR, STATUS_LABEL, nextStatus } from "@/lib/status";
 import { BotaoTema } from "./BotaoTema";
 import { ShareModal } from "./ShareModal";
-import { TripModal } from "./TripModal";
+import { TripModal, type AbaId } from "./TripModal";
 import { YearSection } from "./TripCard";
 import { formatBRL } from "@/lib/format";
 import { totalAPagar, totalPago } from "@/lib/checklist";
@@ -28,7 +30,7 @@ const BASE_YEARS = [CUR, CUR + 1, CUR + 2, CUR + 3];
 const POLL_MS = 12000;
 
 type Modal =
-  | { type: "trip"; trip: TripDTO | null; presetYear?: number }
+  | { type: "trip"; trip: TripDTO | null; presetYear?: number; aba?: AbaId }
   | { type: "share" }
   | { type: "newboard" }
   | null;
@@ -417,13 +419,28 @@ export function BoardApp({
         {/* O painel de destaque some quando há filtro ativo: ali a pessoa
             está procurando algo específico, e um bloco grande fora do
             filtro seria ruído. */}
-        {destaque && !filtering && (
-          <ProximaViagem
-            trip={destaque}
-            hoje={hoje}
-            onAbrir={() => setModal({ type: "trip", trip: destaque })}
-          />
-        )}
+        {destaque &&
+          !filtering &&
+          /* Durante a viagem o painel vira outra coisa. "hoje" so existe
+             depois que o componente monta — no servidor seria UTC, e a
+             virada do dia cairia na hora errada para quem esta em outro
+             fuso, que e exatamente a pessoa em viagem. */
+          (hoje && estaEmViagem(destaque, hoje) ? (
+            <EmViagem
+              trip={destaque}
+              hoje={hoje}
+              onAbrir={() => setModal({ type: "trip", trip: destaque })}
+              onLancarGasto={() =>
+                setModal({ type: "trip", trip: destaque, aba: "destino" })
+              }
+            />
+          ) : (
+            <ProximaViagem
+              trip={destaque}
+              hoje={hoje}
+              onAbrir={() => setModal({ type: "trip", trip: destaque })}
+            />
+          ))}
 
         {/* ---------- filters ---------- */}
         <div className="filters">
@@ -652,6 +669,7 @@ export function BoardApp({
         <TripModal
           trip={modal.trip}
           presetYear={modal.presetYear ?? CUR}
+          abaInicial={modal.aba}
           defaultPeople={members.length}
           membros={members}
           onClose={closeModal}

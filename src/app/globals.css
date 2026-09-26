@@ -2169,6 +2169,225 @@ textarea.campo {
 }
 
 /* ============================================================
+   Painel de viagem em curso
+
+   Herda a moldura do painel da próxima viagem (capa + véu + texto branco)
+   porque é o mesmo lugar na página, mas responde a outra pergunta. Classes
+   próprias e não modificador do .proxima: as duas telas vão divergir, e
+   modificador em cima de modificador é como o CSS deste projeto já vazou
+   de um lugar para outro antes.
+   ============================================================ */
+.agora {
+  position: relative;
+  margin: 22px 0 6px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  min-height: 210px;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: var(--shadow-md);
+  isolation: isolate;
+}
+.agora .agora-capa {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+/* Véu mais fechado que o da próxima viagem: aqui tem mais texto por cima,
+   e endereço e telefone precisam ser lidos de relance, no sol. */
+.agora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgba(10, 20, 18, 0.92) 0%,
+    rgba(10, 20, 18, 0.76) 52%,
+    rgba(10, 20, 18, 0.44) 100%
+  );
+}
+.agora-conteudo {
+  width: 100%;
+  padding: 18px 22px 16px;
+  color: #fff;
+}
+.agora-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+/* O ponto que pulsa: é o sinal de "está acontecendo agora". Um selo de
+   texto diria a mesma coisa e competiria com o "Dia 3 de 8". */
+.agora-pulso {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal) 70%, transparent);
+  animation: agora-bate 2.4s ease-out infinite;
+}
+@keyframes agora-bate {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal) 70%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+/* Quem pediu menos animação não precisa de um ponto piscando no topo da
+   tela o tempo todo. A cor sozinha continua dizendo o que é. */
+@media (prefers-reduced-motion: reduce) {
+  .agora-pulso {
+    animation: none;
+  }
+}
+.agora-dia {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+.agora h2 {
+  font-family: var(--font-display);
+  font-size: clamp(25px, 4.2vw, 32px);
+  font-weight: 800;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.agora-casa {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 9px;
+}
+.agora-casa strong {
+  font-weight: 700;
+}
+.agora-end {
+  color: rgba(255, 255, 255, 0.72);
+}
+.agora-link {
+  color: #9fe3cd;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.agora-link:hover {
+  text-decoration: underline;
+}
+
+.agora-agenda {
+  margin-top: 12px;
+}
+.agora-rotulo {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+  margin-bottom: 5px;
+}
+.agora-agenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.agora-agenda li {
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.agora-ativ {
+  font-weight: 600;
+  color: #fff;
+}
+.agora-hora {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 7px;
+}
+.agora-contato {
+  display: block;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.74);
+}
+/* Telefone sublinhado: num painel de fundo escuro e texto branco, cor
+   sozinha não distingue link de texto comum. */
+.agora-contato a {
+  color: #9fe3cd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.agora-pe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.agora-gasto {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.86);
+  font-variant-numeric: tabular-nums;
+}
+.agora-gasto b {
+  color: #fff;
+  font-weight: 700;
+}
+.agora-hoje-val {
+  color: #9fe3cd;
+}
+.agora-botoes {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+/* O "Abrir" fica sobre o véu escuro nos dois temas, então a cor do texto é
+   literal — com var(--ink) ele sumia no escuro, que foi o bug do painel da
+   próxima viagem. */
+.agora-abrir {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #fff;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+.agora-abrir:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+@media (max-width: 719px) {
+  .agora-conteudo {
+    padding: 16px 16px 14px;
+  }
+  .agora-pe {
+    align-items: stretch;
+  }
+  .agora-botoes {
+    width: 100%;
+  }
+  .agora-botoes .btn {
+    flex: 1;
+  }
+}
+
+/* ============================================================
    Hospedagem e mapa
    ============================================================ */
 .hosp .hosp-end,
