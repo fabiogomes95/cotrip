@@ -25,6 +25,15 @@
   --shadow-md: 0 2px 6px rgba(36, 50, 48, 0.06), 0 14px 30px -18px rgba(36, 50, 48, 0.28);
   --shadow-lg: 0 12px 40px -12px rgba(36, 50, 48, 0.35);
   --focus: #0f857a;
+
+  /* Fundo da área digitável. Existe como token próprio porque o
+     comportamento se inverte entre os temas: no claro o campo fica RECUADO
+     em relação ao modal (convenção de interface clara); no escuro ele
+     precisa SUBIR, senão some dentro do painel. */
+  --campo-fundo: var(--paper);
+  --campo-fundo-foco: var(--surface);
+  --scroll-thumb: var(--line-strong);
+
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 18px;
@@ -57,6 +66,13 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35), 0 16px 34px -18px rgba(0, 0, 0, 0.7);
     --shadow-lg: 0 16px 46px -12px rgba(0, 0, 0, 0.7);
+
+    /* No escuro o campo sobe um degrau acima de --surface (#1a2523): com o
+       --paper de antes, a área digitável era mais escura que o modal e
+       sumia dentro dele. */
+    --campo-fundo: #243330;
+    --campo-fundo-foco: #2b3b37;
+    --scroll-thumb: #3d4c47;
   }
 }
 
@@ -80,6 +96,10 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35), 0 16px 34px -18px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 16px 46px -12px rgba(0, 0, 0, 0.7);
+
+  --campo-fundo: #243330;
+  --campo-fundo-foco: #2b3b37;
+  --scroll-thumb: #3d4c47;
 }
 
 * {
@@ -296,6 +316,72 @@ a {
   height: 7px;
   border-radius: 50%;
   background: var(--st-reserv);
+}
+
+/* ============================================================
+   Barra de rolagem
+
+   Escrita com tokens em vez de cores fixas: claro e escuro saem do mesmo
+   bloco, sem duplicar. Cada container declara o próprio --scroll-fundo,
+   porque o "vão" em volta do polegar precisa ser da cor de quem rola.
+   ============================================================ */
+.sheet {
+  --scroll-fundo: var(--surface);
+  /* Reserva a calha sempre: sem isto o conteúdo pula alguns pixels ao trocar
+     de aba, quando a barra aparece ou some. */
+  scrollbar-gutter: stable;
+}
+.diario-leitura,
+.hosp-achados {
+  --scroll-fundo: var(--paper);
+}
+
+.sheet,
+.diario-leitura,
+.hosp-achados,
+.md pre,
+.md table,
+.sheet-abas {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+.sheet::-webkit-scrollbar,
+.diario-leitura::-webkit-scrollbar,
+.hosp-achados::-webkit-scrollbar,
+.md pre::-webkit-scrollbar,
+.md table::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+.sheet::-webkit-scrollbar-track,
+.diario-leitura::-webkit-scrollbar-track,
+.hosp-achados::-webkit-scrollbar-track,
+.md pre::-webkit-scrollbar-track,
+.md table::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sheet::-webkit-scrollbar-thumb,
+.diario-leitura::-webkit-scrollbar-thumb,
+.hosp-achados::-webkit-scrollbar-thumb,
+.md pre::-webkit-scrollbar-thumb,
+.md table::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+  /* Borda da cor do fundo + background-clip deixa o polegar flutuando no
+     meio da calha, mais fino que ela. É o que faz a barra parecer desenhada
+     em vez de colada na borda. */
+  border: 3px solid var(--scroll-fundo, var(--surface));
+  background-clip: padding-box;
+}
+
+.sheet::-webkit-scrollbar-thumb:hover,
+.diario-leitura::-webkit-scrollbar-thumb:hover,
+.hosp-achados::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+  background-clip: padding-box;
 }
 
 /* ---------- layout ---------- */
@@ -881,12 +967,15 @@ a {
 
    Componente aninhado que quer este visual pede por ele: `.campo` e
    `.rotulo`. Quem não pede, não herda. */
+/* A hierarquia vem de tamanho e peso, não de apagar a cor: mantive o
+   --ink-soft porque --ink-faint dá cerca de 3:1 de contraste, abaixo do
+   legível — e justamente em texto pequeno, que precisa de mais, não menos. */
 .field > label,
 .rotulo {
   display: block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em; /* caixa alta pede respiro entre as letras */
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-bottom: 6px;
@@ -897,25 +986,43 @@ a {
 .campo {
   width: 100%;
   border: 1px solid var(--line-strong);
-  background: var(--paper);
+  background: var(--campo-fundo);
   color: var(--ink);
   border-radius: var(--r-sm);
   padding: 10px 12px;
   font-size: 15px;
   font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field > input:hover,
+.field > select:hover,
+.campo:hover {
+  border-color: var(--ink-faint);
 }
 .field > textarea,
 textarea.campo {
   resize: vertical;
   min-height: 64px;
 }
-.field > input:focus,
-.field > textarea:focus,
-.field > select:focus,
-.campo:focus {
-  outline: 2px solid var(--focus);
-  outline-offset: 0;
-  border-color: var(--focus);
+/* :focus-visible, não :focus — o anel serve a quem navega por teclado e não
+   pinta a tela a cada clique. Em campo de texto o navegador considera o
+   clique "visível" de qualquer jeito, então na prática a diferença aparece
+   nos selects e botões.
+
+   box-shadow no lugar de outline porque ele acompanha o border-radius: o
+   outline sai quadrado em volta do campo arredondado. */
+.field > input:focus-visible,
+.field > textarea:focus-visible,
+.field > select:focus-visible,
+.campo:focus-visible {
+  outline: none;
+  border-color: var(--teal);
+  background: var(--campo-fundo-foco);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 26%, transparent);
 }
 .two {
   display: grid;
@@ -950,6 +1057,24 @@ textarea.campo {
   gap: 5px;
   transition: all 0.12s ease;
 }
+/* O guarda de :hover evita o estado grudado em tela de toque, onde o hover
+   fica preso depois do tap. O :not() garante que o botão ativo mantenha o
+   destaque dele, sem competir. */
+@media (hover: hover) {
+  .seg button:hover:not([aria-pressed="true"]) {
+    background: var(--surface-2);
+    border-color: var(--ink-faint);
+    color: var(--ink);
+  }
+}
+.seg button:not([aria-pressed="true"]):active {
+  transform: translateY(1px);
+}
+.seg button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 26%, transparent);
+}
+
 .seg button .sd {
   width: 9px;
   height: 9px;
@@ -1910,11 +2035,52 @@ textarea.campo {
   color: var(--ink-faint);
 }
 
+/* No escuro, o mapa é a coisa mais clara da tela e queima a vista. Baixar
+   brilho e saturação não é enfeite: o painel inteiro fica em torno de
+   #1a2523 e um retângulo branco no meio quebra a imersão.
+
+   Uso filtro em vez de trocar o provedor de tiles porque tile escuro de
+   verdade exige chave de API — e aqui não há cadastro nem cartão. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mapa .leaflet-tile-pane,
+  :root:not([data-theme="light"]) .capa-mapa img {
+    filter: brightness(0.72) saturate(0.68) contrast(1.05);
+  }
+}
+:root[data-theme="dark"] .mapa .leaflet-tile-pane,
+:root[data-theme="dark"] .capa-mapa img {
+  filter: brightness(0.72) saturate(0.68) contrast(1.05);
+}
+
+/* Os controles do Leaflet vêm brancos de fábrica. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mapa .leaflet-bar a {
+    background: var(--surface-2);
+    color: var(--ink);
+    border-bottom-color: var(--line);
+  }
+  :root:not([data-theme="light"]) .mapa .leaflet-bar a:hover {
+    background: var(--line-strong);
+  }
+}
+:root[data-theme="dark"] .mapa .leaflet-bar a {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-bottom-color: var(--line);
+}
+:root[data-theme="dark"] .mapa .leaflet-bar a:hover {
+  background: var(--line-strong);
+}
+
 /* A atribuição do OpenStreetMap é obrigatória pela licença dos dados; só
    deixo discreta, nunca escondida. */
 .mapa .leaflet-control-attribution {
   font-size: 9.5px;
-  background: rgba(255, 255, 255, 0.75);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--ink-soft);
+}
+.mapa .leaflet-control-attribution a {
+  color: var(--teal-deep);
 }
 
 /* ============================================================
@@ -2453,7 +2619,7 @@ textarea.campo {
 .check-lista {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   margin-bottom: 10px;
 }
 
@@ -2532,6 +2698,7 @@ textarea.campo {
 }
 
 .check-del {
+  position: relative;
   width: 26px;
   height: 26px;
   border: none;
@@ -2541,6 +2708,23 @@ textarea.campo {
   font-size: 17px;
   line-height: 1;
   cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+/* 26px é bem menor que o alvo de toque confortável. O pseudo-elemento cresce
+   a área clicável para ~44px sem crescer o desenho nem empurrar a grade. */
+.check-del::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+/* O × sai do caminho enquanto a pessoa lê e aparece quando ela vai agir. */
+.check-item:hover .check-del,
+.pre-linha:hover .check-del,
+.gasto-linha:hover .check-del,
+.ativ:hover .check-del,
+.check-del:focus-visible {
+  opacity: 1;
 }
 .check-del:hover {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
@@ -2866,6 +3050,10 @@ textarea.campo {
   .chip {
     padding: 5px 10px;
     font-size: 12.5px;
+  }
+
+  .check-lista {
+    gap: 10px;
   }
 
   /* Linha do checklist: a coluna do valor encolhe para sobrar largura ao
