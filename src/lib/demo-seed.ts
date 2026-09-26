@@ -34,11 +34,25 @@ type ViagemDemo = {
   hosp?: { nome: string; endereco: string; lat: number; lng: number };
   note: string;
   /** Passeios com contato, para a demo mostrar o módulo do destino. */
-  passeios?: Array<{ label: string; contact?: string; timeText?: string; status: "IDEIA" | "AGENDADO" | "FEITO" }>;
+  passeios?: Array<{
+    label: string;
+    contact?: string;
+    timeText?: string;
+    status: "IDEIA" | "AGENDADO" | "FEITO";
+  }>;
   /** Gastos avulsos do dia a dia. */
-  gastos?: Array<{ label: string; category: "TRANSPORTE" | "ALIMENTACAO" | "PASSEIO" | "COMPRAS" | "OUTROS"; totalCents: number }>;
+  gastos?: Array<{
+    label: string;
+    category: "TRANSPORTE" | "ALIMENTACAO" | "PASSEIO" | "COMPRAS" | "OUTROS";
+    totalCents: number;
+  }>;
   /** Tarefas de antes de sair, para a demo mostrar o módulo. */
-  tarefas?: Array<{ label: string; done: boolean; assignee?: string; when: "ANTES" | "VESPERA" | "SAIDA" }>;
+  tarefas?: Array<{
+    label: string;
+    done: boolean;
+    assignee?: string;
+    when: "ANTES" | "VESPERA" | "SAIDA";
+  }>;
   items?: Array<{
     label: string;
     done: boolean;
@@ -57,14 +71,20 @@ function viagens(): ViagemDemo[] {
   const Y = ANO();
   return [
     {
-      dest: "Fernando de Noronha", whenText: "Novembro", ano: Y, status: "RESERVADO",
+      dest: "Fernando de Noronha",
+      whenText: "Novembro",
+      ano: Y,
+      status: "RESERVADO",
       // Com data: o cartão ganha "faltam N dias" e a duração em noites.
-      ida: [Y, 10, 12], volta: [Y, 10, 19],
-      budgetCents: 4200_00, people: 2,
+      ida: [Y, 10, 12],
+      volta: [Y, 10, 19],
+      budgetCents: 4200_00,
+      people: 2,
       hosp: {
         nome: "Pousada Maravilha",
         endereco: "Baía do Sueste, Fernando de Noronha — PE",
-        lat: -3.86694, lng: -32.42806,
+        lat: -3.86694,
+        lng: -32.42806,
       },
       note: `## Antes de ir
 
@@ -81,26 +101,80 @@ function viagens(): ViagemDemo[] {
 > A trilha do Atalaia tem vaga limitada por dia — dá para agendar no ICMBio
 > assim que a passagem sai.`,
       passeios: [
-        { label: "Passeio de barco pela ilha", contact: "Zé do Barco · (81) 98888-1234", timeText: "9h", status: "AGENDADO" },
-        { label: "Mergulho batismo", contact: "Atlantis Divers · (81) 99777-4321", timeText: "manhã", status: "IDEIA" },
-        { label: "Trilha do Atalaia", contact: "ICMBio — agendar no site", timeText: "fim da tarde", status: "IDEIA" },
+        {
+          label: "Passeio de barco pela ilha",
+          contact: "Zé do Barco · (81) 98888-1234",
+          timeText: "9h",
+          status: "AGENDADO",
+        },
+        {
+          label: "Mergulho batismo",
+          contact: "Atlantis Divers · (81) 99777-4321",
+          timeText: "manhã",
+          status: "IDEIA",
+        },
+        {
+          label: "Trilha do Atalaia",
+          contact: "ICMBio — agendar no site",
+          timeText: "fim da tarde",
+          status: "IDEIA",
+        },
       ],
       // Muitos gastos pequenos de transporte: é o caso que o módulo existe
       // para tornar visível.
       gastos: [
-        { label: "Táxi do aeroporto", category: "TRANSPORTE", totalCents: 9000 },
-        { label: "Buggy até a Baía dos Porcos", category: "TRANSPORTE", totalCents: 12000 },
-        { label: "Corrida até o Sancho", category: "TRANSPORTE", totalCents: 4500 },
-        { label: "Almoço no Porto", category: "ALIMENTACAO", totalCents: 18000 },
+        {
+          label: "Táxi do aeroporto",
+          category: "TRANSPORTE",
+          totalCents: 9000,
+        },
+        {
+          label: "Buggy até a Baía dos Porcos",
+          category: "TRANSPORTE",
+          totalCents: 12000,
+        },
+        {
+          label: "Corrida até o Sancho",
+          category: "TRANSPORTE",
+          totalCents: 4500,
+        },
+        {
+          label: "Almoço no Porto",
+          category: "ALIMENTACAO",
+          totalCents: 18000,
+        },
         { label: "Jantar na Vila", category: "ALIMENTACAO", totalCents: 22000 },
         { label: "Lembrancinhas", category: "COMPRAS", totalCents: 8000 },
       ],
       tarefas: [
-        { label: "Combinar quem cuida dos gatos", done: true, assignee: "Duda", when: "ANTES" },
-        { label: "Levar o Duque para a casa da mãe", done: false, assignee: "Duda", when: "VESPERA" },
-        { label: "Deixar ração e areia suficientes", done: true, when: "ANTES" },
-        { label: "Deixar a chave com a vizinha", done: false, assignee: "Dona Marta", when: "ANTES" },
-        { label: "Separar documentos e carregadores", done: false, when: "VESPERA" },
+        {
+          label: "Combinar quem cuida dos gatos",
+          done: true,
+          assignee: "Duda",
+          when: "ANTES",
+        },
+        {
+          label: "Levar o Duque para a casa da mãe",
+          done: false,
+          assignee: "Duda",
+          when: "VESPERA",
+        },
+        {
+          label: "Deixar ração e areia suficientes",
+          done: true,
+          when: "ANTES",
+        },
+        {
+          label: "Deixar a chave com a vizinha",
+          done: false,
+          assignee: "Dona Marta",
+          when: "ANTES",
+        },
+        {
+          label: "Separar documentos e carregadores",
+          done: false,
+          when: "VESPERA",
+        },
         { label: "Fechar o registro de água", done: false, when: "SAIDA" },
         { label: "Fechar o gás", done: false, when: "SAIDA" },
         { label: "Tirar aparelhos da tomada", done: false, when: "SAIDA" },
@@ -108,24 +182,36 @@ function viagens(): ViagemDemo[] {
       items: [
         // Entrada + parcelamento: R$ 500 na hora e o resto em 6x de R$ 280.
         {
-          label: "Passagem aérea", done: true, amountCents: 2180_00,
-          downPaymentCents: 500_00, downPaymentPaid: true,
-          installments: 6, paidInstallments: 2,
+          label: "Passagem aérea",
+          done: true,
+          amountCents: 2180_00,
+          downPaymentCents: 500_00,
+          downPaymentPaid: true,
+          installments: 6,
+          paidInstallments: 2,
           firstDueDate: [Y, 7, 10],
         },
         { label: "Pousada (5 noites)", done: true, amountCents: 1650_00 },
-        { label: "Taxa de preservação + parque", done: true, amountCents: 520_00 },
+        {
+          label: "Taxa de preservação + parque",
+          done: true,
+          amountCents: 520_00,
+        },
         { label: "Mergulho batismo", done: false, amountCents: 380_00 },
         { label: "Aluguel de buggy", done: false, amountCents: null },
       ],
     },
     {
-      dest: "Jericoacoara", whenText: "Setembro", ano: Y, status: "PLANEJANDO",
+      dest: "Jericoacoara",
+      whenText: "Setembro",
+      ano: Y,
+      status: "PLANEJANDO",
       budgetCents: 1500_00,
       hosp: {
         nome: "Casa do primo",
         endereco: "Rua das Dunas, Jericoacoara — CE",
-        lat: -2.79556, lng: -40.51222,
+        lat: -2.79556,
+        lng: -40.51222,
       },
       note: "Buggy nas dunas, pôr do sol na Duna do Pôr do Sol, rede no mar.",
       items: [
@@ -134,21 +220,114 @@ function viagens(): ViagemDemo[] {
         { label: "Passeio de buggy", done: false, amountCents: null },
       ],
     },
+    /* As duas viagens do diário de bordo. Levam texto de verdade, com
+       títulos e listas, porque é justamente o que aquela tela mostra —
+       com uma linha só, a seção pareceria vazia na demo. */
     {
-      dest: "Serra Gaúcha", whenText: "Junho", ano: Y - 1, status: "FEITA",
-      ida: [Y - 1, 5, 10], volta: [Y - 1, 5, 14],
+      dest: "Serra Gaúcha",
+      whenText: "Junho",
+      ano: Y - 1,
+      status: "FEITA",
+      ida: [Y - 1, 5, 10],
+      volta: [Y - 1, 5, 14],
       budgetCents: 900_00,
-      note: "Gramado e Canela, vinícolas no caminho.",
+      people: 2,
+      hosp: {
+        nome: "Pousada Bella Gramado",
+        endereco: "Av. Borges de Medeiros, Gramado — RS",
+        lat: -29.3788,
+        lng: -50.8761,
+      },
+      note: [
+        "## Como foi",
+        "Subimos a serra com neblina o caminho todo e chegamos achando que ia",
+        "chover a semana inteira. No dia seguinte abriu.",
+        "",
+        "## O que ficou",
+        "- O vale dos Vinhedos num fim de tarde, com o sol batendo de lado nas parreiras",
+        "- Fondue na Rua Coberta, com frio de verdade pela primeira vez no ano",
+        "- A estrada entre Gramado e Canela, que é curta e mesmo assim a gente parou três vezes",
+        "",
+        "## Pra próxima",
+        "Ficar mais perto de Canela e deixar um dia inteiro só para a Ferradura.",
+      ].join("\n"),
       items: [
         { label: "Passagem", done: true, amountCents: 410_00 },
         { label: "Hospedagem", done: true, amountCents: 380_00 },
         { label: "Vinícolas", done: true, amountCents: 95_00 },
       ],
     },
-    { dest: "Buenos Aires", whenText: "Abril", ano: Y + 1, status: "IDEIA", budgetCents: 3500_00, note: "Tango em San Telmo, parrilla, feira de Recoleta." },
-    { dest: "Chapada Diamantina", whenText: "Julho", ano: Y + 1, status: "IDEIA", budgetCents: 2200_00, note: "Cachoeira da Fumaça, Poço Azul, Vale do Pati." },
-    { dest: "Lisboa & Porto", whenText: "Maio", ano: Y + 2, status: "IDEIA", budgetCents: 9000_00, note: "Duas semanas, comboio entre as cidades, Sintra num bate-volta." },
-    { dest: "Japão", whenText: "Temporada das cerejeiras", ano: 0, status: "IDEIA", budgetCents: 15000_00, note: "O sonho antigo. Tóquio, Kyoto, talvez Osaka." },
+    {
+      dest: "Paraty",
+      whenText: "Novembro",
+      ano: Y - 2,
+      status: "FEITA",
+      ida: [Y - 2, 10, 15],
+      volta: [Y - 2, 10, 19],
+      budgetCents: 1100_00,
+      people: 2,
+      hosp: {
+        nome: "Pousada no centro histórico",
+        endereco: "Rua do Comércio, Paraty — RJ",
+        lat: -23.2178,
+        lng: -44.7131,
+      },
+      note: [
+        "## Como foi",
+        "Chovia quando chegamos e o centro histórico estava alagado pela maré —",
+        "descobrimos depois que é assim mesmo, de propósito, desde o século XVIII.",
+        "",
+        "## O que ficou",
+        "- O passeio de escuna com parada em três praias, o melhor dinheiro gasto da viagem",
+        "- A cachaça do alambique na estrada para Cunha",
+        "- Andar de noite naquele calçamento impossível, sem carro nenhum",
+      ].join("\n"),
+      items: [
+        { label: "Passagem de ônibus", done: true, amountCents: 220_00 },
+        { label: "Pousada (4 noites)", done: true, amountCents: 680_00 },
+        { label: "Escuna", done: true, amountCents: 180_00 },
+      ],
+      gastos: [
+        {
+          label: "Jantar no centro",
+          category: "ALIMENTACAO",
+          totalCents: 16000,
+        },
+        { label: "Alambique", category: "PASSEIO", totalCents: 9000 },
+      ],
+    },
+    {
+      dest: "Buenos Aires",
+      whenText: "Abril",
+      ano: Y + 1,
+      status: "IDEIA",
+      budgetCents: 3500_00,
+      note: "Tango em San Telmo, parrilla, feira de Recoleta.",
+    },
+    {
+      dest: "Chapada Diamantina",
+      whenText: "Julho",
+      ano: Y + 1,
+      status: "IDEIA",
+      budgetCents: 2200_00,
+      note: "Cachoeira da Fumaça, Poço Azul, Vale do Pati.",
+    },
+    {
+      dest: "Lisboa & Porto",
+      whenText: "Maio",
+      ano: Y + 2,
+      status: "IDEIA",
+      budgetCents: 9000_00,
+      note: "Duas semanas, comboio entre as cidades, Sintra num bate-volta.",
+    },
+    {
+      dest: "Japão",
+      whenText: "Temporada das cerejeiras",
+      ano: 0,
+      status: "IDEIA",
+      budgetCents: 15000_00,
+      note: "O sonho antigo. Tóquio, Kyoto, talvez Osaka.",
+    },
   ];
 }
 
@@ -200,7 +379,17 @@ export async function semearDemo(
     },
   });
 
-  for (const { items, tarefas, passeios, gastos, hosp, ano, ida, volta, ...v } of viagens()) {
+  for (const {
+    items,
+    tarefas,
+    passeios,
+    gastos,
+    hosp,
+    ano,
+    ida,
+    volta,
+    ...v
+  } of viagens()) {
     await prisma.trip.create({
       data: {
         ...v,
@@ -286,19 +475,46 @@ async function semearQuadroCompartilhado(
         create: [
           // A demo bancou a passagem inteira, em 10x
           {
-            label: "Passagem", position: 0, done: true, amountCents: 3100_00,
-            installments: 10, paidInstallments: 3,
-            firstDueDate: new Date(Date.UTC(Y, 8, 15)), paidById: demoId,
+            label: "Passagem",
+            position: 0,
+            done: true,
+            amountCents: 3100_00,
+            installments: 10,
+            paidInstallments: 3,
+            firstDueDate: new Date(Date.UTC(Y, 8, 15)),
+            paidById: demoId,
           },
           // A Duda bancou a hospedagem à vista
           {
-            label: "Hospedagem", position: 1, done: true, amountCents: 1400_00,
-            installments: 1, paidInstallments: 1, paidById: dudaId,
+            label: "Hospedagem",
+            position: 1,
+            done: true,
+            amountCents: 1400_00,
+            installments: 1,
+            paidInstallments: 1,
+            paidById: dudaId,
           },
-          { label: "Seguro viagem", position: 2, done: true, amountCents: 180_00,
-            installments: 1, paidInstallments: 1, paidById: demoId },
-          { label: "Passeio aos vinhedos", position: 3, done: false, amountCents: 320_00 },
-          { label: "Transporte no local", position: 4, done: false, amountCents: null },
+          {
+            label: "Seguro viagem",
+            position: 2,
+            done: true,
+            amountCents: 180_00,
+            installments: 1,
+            paidInstallments: 1,
+            paidById: demoId,
+          },
+          {
+            label: "Passeio aos vinhedos",
+            position: 3,
+            done: false,
+            amountCents: 320_00,
+          },
+          {
+            label: "Transporte no local",
+            position: 4,
+            done: false,
+            amountCents: null,
+          },
         ],
       },
     },

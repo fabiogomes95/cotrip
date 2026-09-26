@@ -6,6 +6,7 @@ import {
   totalAPagar,
   totalContratado,
   totalPago,
+  custoDaViagem,
 } from "./checklist";
 import type { ChecklistItemDTO } from "@/types";
 
@@ -53,7 +54,9 @@ describe("totalContratado", () => {
   it("soma em centavos não acumula erro de fração", () => {
     // o motivo de guardar centavos como inteiro: com float, dez vezes 0,10
     // não dá exatamente 1,00
-    const dez = Array.from({ length: 10 }, () => item({ done: true, amountCents: 10 }));
+    const dez = Array.from({ length: 10 }, () =>
+      item({ done: true, amountCents: 10 }),
+    );
     assert.equal(totalContratado(dez), 100);
   });
 });
@@ -61,7 +64,12 @@ describe("totalContratado", () => {
 describe("totalPago x totalAPagar", () => {
   it("parcelado: contratado inteiro, pago só a parte que venceu", () => {
     const items = [
-      item({ done: true, amountCents: 228000, installments: 6, paidInstallments: 2 }),
+      item({
+        done: true,
+        amountCents: 228000,
+        installments: 6,
+        paidInstallments: 2,
+      }),
     ];
     assert.equal(totalContratado(items), 228000);
     assert.equal(totalPago(items), 76000);
@@ -71,7 +79,14 @@ describe("totalPago x totalAPagar", () => {
   it("dinheiro que saiu conta mesmo se o item não foi marcado", () => {
     // pagou o sinal da pousada mas ainda não deu por 'resolvido': o dinheiro
     // saiu do mesmo jeito e precisa aparecer
-    const items = [item({ done: false, amountCents: 100000, installments: 2, paidInstallments: 1 })];
+    const items = [
+      item({
+        done: false,
+        amountCents: 100000,
+        installments: 2,
+        paidInstallments: 1,
+      }),
+    ];
     assert.equal(totalContratado(items), 0);
     assert.equal(totalPago(items), 50000);
     // não está contratado, então não entra no "ainda vou ter que pagar"
@@ -79,7 +94,14 @@ describe("totalPago x totalAPagar", () => {
   });
 
   it("à vista e pago fecha tudo", () => {
-    const items = [item({ done: true, amountCents: 50000, installments: 1, paidInstallments: 1 })];
+    const items = [
+      item({
+        done: true,
+        amountCents: 50000,
+        installments: 1,
+        paidInstallments: 1,
+      }),
+    ];
     assert.equal(totalPago(items), 50000);
     assert.equal(totalAPagar(items), 0);
   });
@@ -92,7 +114,14 @@ describe("totalPago x totalAPagar", () => {
 
 describe("feitos", () => {
   it("conta os concluídos", () => {
-    assert.equal(feitos([item({ done: true }), item({ done: false }), item({ done: true })]), 2);
+    assert.equal(
+      feitos([
+        item({ done: true }),
+        item({ done: false }),
+        item({ done: true }),
+      ]),
+      2,
+    );
     assert.equal(feitos([]), 0);
   });
 });
@@ -101,7 +130,14 @@ describe("compararComOrcamento", () => {
   it("compara o contratado, não o pago", () => {
     // viagem inteira parcelada, quase nada pago ainda, mas já estourou:
     // comparar pelo pago diria que está dentro do orçamento
-    const items = [item({ done: true, amountCents: 500000, installments: 10, paidInstallments: 1 })];
+    const items = [
+      item({
+        done: true,
+        amountCents: 500000,
+        installments: 10,
+        paidInstallments: 1,
+      }),
+    ];
     const r = compararComOrcamento(totalContratado(items), 420000);
     assert.deepEqual(r, { diferenca: 80000, acima: true });
   });
@@ -130,5 +166,46 @@ describe("compararComOrcamento", () => {
     // sem isto o app anunciaria "R$ 4.200 abaixo do estimado" numa viagem
     // em que ninguém lançou nada ainda
     assert.equal(compararComOrcamento(0, 420000), null);
+  });
+});
+
+describe("custoDaViagem", () => {
+  it("multiplica o checklist por pessoa e soma os gastos inteiros", () => {
+    // Passagem de R$ 400 POR PESSOA, duas pessoas = R$ 800.
+    // Jantar de R$ 160 é o TOTAL da mesa, não por cabeça.
+    const items = [item({ done: true, amountCents: 400_00 })];
+    assert.equal(custoDaViagem(items, [{ totalCents: 160_00 }], 2), 960_00);
+  });
+
+  it("usa o contratado, e não o pago", () => {
+    /* Numa viagem que já aconteceu, exigir que cada parcela estivesse
+       marcada faria a viagem aparecer como se não tivesse custado nada —
+       foi exatamente o que o diário de bordo mostrava. */
+    const items = [
+      item({
+        done: true,
+        amountCents: 900_00,
+        installments: 6,
+        paidInstallments: 0,
+      }),
+    ];
+    assert.equal(totalPago(items), 0);
+    assert.equal(custoDaViagem(items, [], 1), 900_00);
+  });
+
+  it("item não contratado não entra", () => {
+    const items = [item({ done: false, amountCents: 700_00 })];
+    assert.equal(custoDaViagem(items, [], 2), 0);
+  });
+
+  it("people zero não zera a conta", () => {
+    // Defesa contra dado velho: antes de `people` existir, toda viagem
+    // ficaria com 0 e o custo sumiria.
+    const items = [item({ done: true, amountCents: 300_00 })];
+    assert.equal(custoDaViagem(items, [], 0), 300_00);
+  });
+
+  it("sem nada, zero", () => {
+    assert.equal(custoDaViagem([], [], 2), 0);
   });
 });

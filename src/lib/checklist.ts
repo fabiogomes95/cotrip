@@ -54,7 +54,31 @@ export function compararComOrcamento(
   contratadoCents: number,
   orcamentoCents: number | null,
 ): { diferenca: number; acima: boolean } | null {
-  if (!orcamentoCents || orcamentoCents <= 0 || contratadoCents <= 0) return null;
+  if (!orcamentoCents || orcamentoCents <= 0 || contratadoCents <= 0)
+    return null;
   const diferenca = contratadoCents - orcamentoCents;
   return { diferenca: Math.abs(diferenca), acima: diferenca > 0 };
+}
+
+/**
+ * O que a viagem custou, ao todo — para uma viagem que já aconteceu.
+ *
+ * Soma duas coisas que moram em unidades diferentes: os itens do checklist
+ * são POR PESSOA (a passagem de cada um), e os gastos avulsos são o TOTAL
+ * que saiu da carteira (o Uber de R$ 40 dividido entre dois). Por isso o
+ * checklist é multiplicado por `people` e os gastos não.
+ *
+ * Usa o CONTRATADO, e não o pago. Numa viagem que ainda vem, a diferença
+ * entre os dois é o que ainda vai sair do bolso — a informação mais útil
+ * que existe. Numa que já foi, não existe parcela futura que importe: o que
+ * ficou contratado foi pago, e exigir que alguém tivesse marcado cada
+ * parcela faria a viagem aparecer como se não tivesse custado nada.
+ */
+export function custoDaViagem(
+  items: ChecklistItemDTO[],
+  gastos: { totalCents: number }[],
+  people: number,
+): number {
+  const porPessoa = totalContratado(items) * Math.max(1, people);
+  return porPessoa + gastos.reduce((s, g) => s + g.totalCents, 0);
 }

@@ -1,9 +1,31 @@
 "use client";
 
+import { Capa } from "./Capa";
+
 import type { TripDTO } from "@/types";
 import { formatBRL, yearLabel } from "@/lib/format";
-import { totalPago } from "@/lib/checklist";
+import { formatarPeriodo, noites } from "@/lib/datas";
+import { custoDaViagem } from "@/lib/checklist";
+import { resumoDaNota } from "@/lib/markdown";
 
+/* ============================================================
+   Diário de bordo — a linha vista para trás
+
+   A mesma linha do fluxo, continuada. Em cima ela sobe para o que ainda vai
+   acontecer; aqui desce para o que já aconteceu, do mais recente ao mais
+   antigo — é a ordem em que a memória procura.
+
+   O cartão é outro de propósito. Numa viagem que ainda vem, o que importa é
+   o que falta resolver: quanto pagar, o que contratar. Numa que já foi, não
+   falta nada — o que sobrou dela é o texto que a pessoa escreveu. Por isso
+   aqui o diário ocupa o lugar que lá era do checklist, e o dinheiro desce
+   para uma linha só, no rodapé.
+   ============================================================ */
+
+/** O custo de uma viagem feita: checklist por pessoa + gastos avulsos. */
+function custo(t: TripDTO): number {
+  return custoDaViagem(t.items, t.expenses, t.people);
+}
 
 export function Arquivo({
   trips,
@@ -14,15 +36,21 @@ export function Arquivo({
   aberto: boolean;
   onOpen: (t: TripDTO) => void;
 }) {
-  const total = trips.reduce((s, t) => s + totalPago(t.items), 0);
+  const total = trips.reduce((s, t) => s + custo(t), 0);
+
+  /* Agrupa por ano para a linha ter marcos também aqui. Descendo no tempo:
+     o ano mais recente primeiro. */
+  const anos = [...new Set(trips.map((t) => t.year || 0))].sort(
+    (a, b) => (b || 0) - (a || 0),
+  );
 
   return (
-    <details className="arquivo" open={aberto}>
+    <details className="historias" open={aberto}>
       <summary>
         <span className="seta" aria-hidden="true">
           ▸
         </span>
-        <span className="tit">Já rolou</span>
+        <span className="tit">Diário de bordo</span>
         <span className="meta">
           {trips.length} {trips.length === 1 ? "viagem" : "viagens"}
           {total > 0 && (
@@ -34,34 +62,133 @@ export function Arquivo({
         </span>
       </summary>
 
-      <ul className="arquivo-lista">
-        {trips.map((t) => {
-          const g = totalPago(t.items);
-          return (
-            <li key={t.id}>
-              <button type="button" onClick={() => onOpen(t)}>
-                <span className="ano">{yearLabel(t.year)}</span>
-                <span className="dest">{t.dest || "Sem nome"}</span>
-                <span className="val">
-                  {g > 0
-                    ? formatBRL(g)
-                    : t.budgetCents
-                      ? formatBRL(t.budgetCents)
-                      : "—"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {/* Mesmo contêiner .fluxo do quadro: é literalmente a mesma linha, com
+          a variação de cor invertida — forte no passado recente, apagando
+          conforme vai longe. */}
+      <div className="fluxo fluxo-passado">
+        {anos.map((ano) => (
+          <Ano
+            key={ano}
+            ano={ano}
+            trips={trips.filter((t) => (t.year || 0) === ano)}
+            onOpen={onOpen}
+          />
+        ))}
+      </div>
     </details>
   );
 }
 
-/* ============================================================
-   Acerto de contas
+function Ano({
+  ano,
+  trips,
+  onOpen,
+}: {
+  ano: number;
+  trips: TripDTO[];
+  onOpen: (t: TripDTO) => void;
+}) {
+  const gasto = trips.reduce((s, t) => s + custo(t), 0);
+  return (
+    <>
+      <div className="fluxo-ano">
+        <span className="fluxo-no" aria-hidden="true" />
+        <div className="fluxo-corpo">
+          <div className="year-head">
+            <h2>{yearLabel(ano)}</h2>
+            <span className="meta">
+              {trips.length} {trips.length === 1 ? "viagem" : "viagens"}
+              {gasto > 0 && (
+                <>
+                  {" · "}
+                  <b>{formatBRL(gasto)}</b>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
 
-   Aparece só em quadro compartilhado e só depois que alguém pagou alguma
-   coisa. Mostra o que cada um desembolsou, o que caberia a cada um, e
-   sugere as transferências que zeram tudo.
-   ============================================================ */
+      {trips.map((t) => (
+        <div className="fluxo-item" key={t.id}>
+          <span className="fluxo-no s-FEITA" aria-hidden="true" />
+          <div className="fluxo-corpo">
+            <Memoria trip={t} onOpen={onOpen} />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function Memoria({
+  trip,
+  onOpen,
+}: {
+  trip: TripDTO;
+  onOpen: (t: TripDTO) => void;
+}) {
+  const periodo = formatarPeriodo(trip.startDate, trip.endDate);
+  const dias = noites(trip.startDate, trip.endDate);
+  const gasto = custo(trip);
+
+  const detalhes = [
+    periodo ?? trip.whenText ?? null,
+    dias != null && dias > 0
+      ? `${dias} ${dias === 1 ? "noite" : "noites"}`
+      : null,
+    trip.people > 1 ? `${trip.people} pessoas` : null,
+  ].filter(Boolean);
+
+  const historia = trip.note ? resumoDaNota(trip.note, 10) : "";
+
+  return (
+    <article className="mem">
+      <div className="mem-capa">
+        <Capa dest={trip.dest} lat={trip.stayLat} lng={trip.stayLng} />
+      </div>
+
+      <div className="mem-corpo">
+        <button
+          type="button"
+          className="mem-abrir"
+          onClick={() => onOpen(trip)}
+        >
+          <h3>{trip.dest || "Sem nome"}</h3>
+          {detalhes.length > 0 && (
+            <p className="mem-quando">{detalhes.join(" · ")}</p>
+          )}
+
+          {historia ? (
+            <p className="mem-texto">{historia}</p>
+          ) : (
+            /* Sem texto o cartão ficaria oco, e o convite certo não é "abra
+               a viagem" — é "escreva o que aconteceu". */
+            <p className="mem-texto vazio">
+              Nada escrito ainda sobre esta viagem.
+            </p>
+          )}
+        </button>
+
+        <div className="mem-pe">
+          <span className="mem-gasto">
+            {gasto > 0 ? (
+              <>
+                <b>{formatBRL(gasto)}</b> gastos
+              </>
+            ) : (
+              <span className="vazio">sem valores lançados</span>
+            )}
+          </span>
+          <button
+            type="button"
+            className="mem-link"
+            onClick={() => onOpen(trip)}
+          >
+            {historia ? "ler o diário →" : "escrever →"}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}

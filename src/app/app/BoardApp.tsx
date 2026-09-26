@@ -552,9 +552,10 @@ export function BoardApp({
               {arquivadas.length > 0 && (
                 <Arquivo
                   trips={arquivadas}
-                  // Se a pessoa filtrou justamente por "Feita", o bloco abre
-                  // sozinho — senão ela filtraria e não veria nada.
-                  aberto={filter === "FEITA"}
+                  // Aberto por padrao: deixou de ser arquivo morto e virou o
+                  // diario de bordo. Esconder as historias atras de um clique
+                  // era certo quando o bloco era uma lista de nomes riscados.
+                  aberto
                   onOpen={(t) => setModal({ type: "trip", trip: t })}
                 />
               )}
