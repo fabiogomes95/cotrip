@@ -54,9 +54,15 @@ export function Capa({
   /* O cartão tem ~340px e a grade 2×2 (512px) sobra. O painel passa de
      1000px e ficaria com o mapa só na metade esquerda — daí a grade maior,
      que é a única diferença entre as duas chamadas. O zoom cai junto: num
-     painel largo, enquadrar a cidade diz mais que enquadrar a rua. */
+     painel largo, enquadrar a cidade diz mais que enquadrar a rua.
+
+     6 colunas, e não 5: a grade é centrada no ponto, mas o arredondamento
+     do canto pode deslocá-la meio tile para um dos lados. Com 5 (1280px) a
+     pior sobra era de 2px sobre um painel de 1028 — cobria, mas qualquer
+     mexida no max-width do .wrap descobriria uma faixa. 6 (1536px) deixam
+     126px de folga de cada lado. Ver o teste "cobre o painel largo". */
   const g = larga
-    ? gradeDeTiles(lat!, lng!, 12, 5, 2)
+    ? gradeDeTiles(lat!, lng!, 12, 6, 2)
     : gradeDeTiles(lat!, lng!, 13, 2, 2);
   return (
     <div className={`capa capa-mapa ${className}`} aria-hidden="true">

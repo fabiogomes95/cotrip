@@ -89,6 +89,37 @@ describe("gradeDeTiles", () => {
     }
   });
 
+  it("cobre o painel largo, mesmo com a grade deslocada", () => {
+    /* A capa é posicionada por `left: calc(50% - pontoX)`, então o que
+       sobra de cada lado é pontoX à esquerda e (largura - pontoX) à
+       direita. As duas sobras precisam alcançar a metade do painel, senão
+       aparece uma faixa sem mapa numa das pontas.
+
+       O painel mais largo que existe: .wrap tem max-width 1060px e 16px de
+       padding de cada lado.
+
+       Varre o globo em vez de listar cidades: o que decide para que lado a
+       grade escorrega é a parte fracionária da coordenada de tile, e uma
+       lista de lugares conhecidos pode passar longe dos dois extremos —
+       foi o que aconteceu na primeira versão deste teste, que passava
+       mesmo com a grade estreita demais. */
+    const PAINEL = 1060 - 32;
+    const metade = PAINEL / 2;
+
+    let piorEsq = Infinity;
+    let piorDir = Infinity;
+    for (let i = 0; i < 360; i++) {
+      const lng = -180 + i * (360 / 360);
+      for (const lat of [-60, -23.5, -5.1, 0, 35.7, 64.1]) {
+        const g = gradeDeTiles(lat, lng, 12, 6, 2);
+        piorEsq = Math.min(piorEsq, g.pontoX);
+        piorDir = Math.min(piorDir, g.largura - g.pontoX);
+      }
+    }
+    assert.ok(piorEsq >= metade, `pior sobra à esquerda: ${piorEsq} < ${metade}`);
+    assert.ok(piorDir >= metade, `pior sobra à direita: ${piorDir} < ${metade}`);
+  });
+
   it("respeita o tamanho de grade pedido", () => {
     const g = gradeDeTiles(-8.0089, -34.8553, 13, 3, 2);
     assert.equal(g.tiles.length, 6);

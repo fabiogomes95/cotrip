@@ -7,6 +7,7 @@ import { ProximaViagem } from "./ProximaViagem";
 import { proximaViagem } from "@/lib/proxima";
 import { NewBoardModal } from "./NewBoardModal";
 import { STATUSES, STATUS_LABEL, nextStatus } from "@/lib/status";
+import { BotaoTema } from "./BotaoTema";
 import { ShareModal } from "./ShareModal";
 import { TripModal } from "./TripModal";
 import { YearSection } from "./TripCard";
@@ -358,6 +359,8 @@ export function BoardApp({
             </svg>
             <span className="lbl">Compartilhar</span>
           </button>
+
+          <BotaoTema />
 
           <span className="user-chip">
             <span className="avatar" title={currentUser.email}>

@@ -5,6 +5,10 @@
    ============================================================ */
 
 :root {
+  /* Avisa o navegador qual e o tema em uso. Sem isto, quem forca o claro num
+     sistema escuro continua com seletor de data e menu de <select> pretos. */
+  color-scheme: light;
+
   --paper: #f7f3eb;
   --surface: #fffdf8;
   --surface-2: #f0eadd;
@@ -47,6 +51,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
     --paper: #111917;
     --surface: #1a2523;
     --surface-2: #22302c;
@@ -77,6 +83,8 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   --paper: #111917;
   --surface: #1a2523;
   --surface-2: #22302c;
@@ -246,6 +254,25 @@ a {
 /* Icone do "Compartilhar". So aparece no celular, onde o rotulo nao cabe. */
 .btn-share .ico {
   display: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Alternador de tema: so icone, tambem no desktop — um rotulo de texto
+   ("Claro"/"Escuro") descreveria o estado atual ou o proximo, e as duas
+   leituras confundem. O estado vive no desenho; a frase inteira fica no
+   title e no aria-label. */
+.btn-tema {
+  padding: 8px 10px;
+  line-height: 0;
+}
+.btn-tema .ico {
+  display: block;
   width: 18px;
   height: 18px;
   fill: none;
@@ -1910,7 +1937,10 @@ textarea.campo {
   flex: none;
   background: rgba(255, 255, 255, 0.95);
   border-color: transparent;
-  color: var(--ink);
+  /* Literal, e nao var(--ink): este botao vive sobre o veu escuro do painel
+     nos dois temas. Com o token, no escuro virava texto quase branco sobre
+     fundo branco. */
+  color: #1d2b28;
   font-weight: 700;
 }
 .proxima .proxima-pe .btn:hover {
@@ -2050,6 +2080,19 @@ textarea.campo {
 :root[data-theme="dark"] .mapa .leaflet-tile-pane,
 :root[data-theme="dark"] .capa-mapa img {
   filter: brightness(0.72) saturate(0.68) contrast(1.05);
+}
+
+/* O painel de destaque é exceção: ele já carrega o véu escuro do
+   .proxima::after por cima do mapa. Somado ao filtro geral, o mapa virava
+   uma mancha cinza sem leitura. Aqui o escurecimento fica por conta do véu
+   e o filtro só tira a saturação. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .proxima-capa img {
+    filter: brightness(0.95) saturate(0.6) contrast(1.02);
+  }
+}
+:root[data-theme="dark"] .proxima-capa img {
+  filter: brightness(0.95) saturate(0.6) contrast(1.02);
 }
 
 /* Os controles do Leaflet vêm brancos de fábrica. */
